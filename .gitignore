@@ -1,0 +1,4 @@
+*.bin
+notes/*
+roms/*
+.DS_Store

@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 )
 
 var Cycles = [0x100]int{
@@ -76,38 +78,32 @@ var Opcodes = [0x100]string{
 	"SED", "SBC", "NOP", "ISC", "NOP", "SBC", "INC", "ISC"}
 
 var AddressingMode = [0x100]string{
-	"", "izx", "CRASH", "izx", "zp", "zp", "zp", "zp",
-	"", "", "", "", "abs", "abs", "abs", "abs",
-	"", "izy", "CRASH", "izy", "zpx", "zpx", "zpx", "zpx",
-	"", "absy", "", "absy", "absx", "absx", "absx", "absx",
-	"", "izx", "CRASH", "izx", "zp", "zp", "zp", "zp",
-	"", "", "", "", "abs", "abs", "abs", "abs",
-	"", "izy", "CRASH", "izy", "zpx", "zpx", "zpx", "zpx",
-	"", "absy", "", "absy", "absx", "absx", "absx", "absx",
-	"", "izx", "CRASH", "izx", "zp", "zp", "zp", "zp",
-	"", "", "", "", "abs", "abs", "abs", "abs",
-	"", "izy", "CRASH", "izy", "zpx", "zpx", "zpx", "zpx",
-	"", "absy", "", "absy", "absx", "absx", "absx", "absx",
-	"", "izx", "CRASH", "izx", "zp", "zp", "zp", "zp",
-	"", "", "", "", "", "abs", "abs", "abs",
-	"", "izy", "CRASH", "izy", "zpx", "zpx", "zpx", "zpx",
-	"", "absy", "", "absy", "absx", "absx", "absx", "absx",
-	"", "izx", "", "izx", "zp", "zp", "zp", "zp",
-	"", "", "", "", "abs", "abs", "abs", "abs",
-	"", "izy", "CRASH", "izy", "zpx", "zpx", "zpy", "zpy",
-	"", "absy", "", "", "absx", "absx", "absy", "absy",
-	"", "izx", "im", "izx", "zp", "zp", "zp", "zp",
-	"", "", "", "", "abs", "abs", "abs", "abs",
-	"", "izy", "CRASH", "izy", "zpx", "zpx", "zpy", "zpy",
-	"", "absy", "", "absy", "absx", "absx", "absy", "absy",
-	"", "izx", "", "izx", "zp", "zp", "zp", "zp",
-	"", "", "", "", "abs", "abs", "abs", "abs",
-	"", "izy", "CRASH", "izy", "zpx", "zpx", "zpx", "zpx",
-	"", "absy", "", "absy", "absx", "absx", "absx", "absx",
-	"", "izx", "", "izx", "zp", "zp", "zp", "zp",
-	"", "", "", "", "abs", "abs", "abs", "abs",
-	"", "izy", "CRASH", "izy", "zpx", "zpx", "zpx", "zpx",
-	"", "absy", "", "absy", "absx", "absx", "absx", "absx"}
+	"", "izx", "CRASH", "izx", "zp", "zp", "zp", "zp", "", "imm",
+	"acc", "imm", "abs", "abs", "abs", "abs", "rel", "izy", "CRASH", "izy",
+	"zpx", "zpx", "zpx", "zpx", "", "absy", "", "absy", "absx", "absx",
+	"absx", "absx", "abs", "izx", "CRASH", "izx", "zp", "zp", "zp", "zp",
+	"", "imm", "acc", "imm", "abs", "abs", "abs", "abs", "rel", "izy",
+	"CRASH", "izy", "zpx", "zpx", "zpx", "zpx", "", "absy", "", "absy",
+	"absx", "absx", "absx", "absx", "", "izx", "CRASH", "izx", "zp", "zp",
+	"zp", "zp", "", "imm", "acc", "imm", "abs", "abs", "abs", "abs",
+	"rel", "izy", "CRASH", "izy", "zpx", "zpx", "zpx", "zpx", "", "absy",
+	"", "absy", "absx", "absx", "absx", "absx", "", "izx", "CRASH", "izx",
+	"zp", "zp", "zp", "zp", "", "imm", "acc", "imm", "ind", "abs",
+	"abs", "abs", "rel", "izy", "CRASH", "izy", "zpx", "zpx", "zpx", "zpx",
+	"", "absy", "", "absy", "absx", "absx", "absx", "absx", "imm", "izx",
+	"imm", "izx", "zp", "zp", "zp", "zp", "", "imm", "", "imm",
+	"abs", "abs", "abs", "abs", "rel", "izy", "CRASH", "izy", "zpx", "zpx",
+	"zpy", "zpy", "", "absy", "", "", "absx", "absx", "absy", "absy",
+	"imm", "izx", "imm", "izx", "zp", "zp", "zp", "zp", "", "imm",
+	"", "imm", "abs", "abs", "abs", "abs", "rel", "izy", "CRASH", "izy",
+	"zpx", "zpx", "zpy", "zpy", "", "absy", "", "absy", "absx", "absx",
+	"absy", "absy", "imm", "izx", "imm", "izx", "zp", "zp", "zp", "zp",
+	"", "imm", "", "imm", "abs", "abs", "abs", "abs", "rel", "izy",
+	"CRASH", "izy", "zpx", "zpx", "zpx", "zpx", "", "absy", "", "absy",
+	"absx", "absx", "absx", "absx", "imm", "izx", "imm", "izx", "zp", "zp",
+	"zp", "zp", "", "imm", "", "imm", "abs", "abs", "abs", "abs",
+	"rel", "izy", "CRASH", "izy", "zpx", "zpx", "zpx", "zpx", "", "absy",
+	"", "absy", "absx", "absx", "absx"}
 
 type Cpu struct {
 	rom Rom
@@ -129,7 +125,8 @@ type Cpu struct {
 	fInterruptDisable bool
 	fDecimal          bool
 	fBreak            bool
-	fOverflow         uint8
+	fNotUsed          bool
+	fOverflow         bool
 	fNegative         bool
 }
 
@@ -148,47 +145,143 @@ func newCpu(rom Rom, ppu Ppu) Cpu {
 func testCpu(filename string) Cpu {
 	cpu := Cpu{}
 	cpu.ram = make([]byte, 0x10000)
+	cpu.loadFile(filename)
+	return cpu
+}
+
+func (cpu *Cpu) loadFile(filename string) {
 	file, err := os.Open(filename)
 	if err != nil {
 		fatal("file not found: ", filename)
 	}
-	count, err := file.Read(cpu.ram)
-	if err != nil || count != 0xFFF6 {
+
+	add := make([]byte, 2)
+	count, err := file.Read(add)
+	if err != nil || count != 2 {
 		fatal("invalid file")
 	}
-	cpu.pc = 0x1008
-	return cpu
+	start := uint16(add[1])<<8 + uint16(add[0])
+
+	count, err = file.Read(cpu.ram[start:])
+	if err != nil || count == 0 {
+		fatal("invalid file")
+	}
+
+	cpu.ram[0x0002] = 0x00
+	cpu.ram[0xA002] = 0x00
+	cpu.ram[0xA003] = 0x80
+	cpu.ram[0xFFFE] = 0x48
+	cpu.ram[0xFFFF] = 0xFF
+	cpu.ram[0x01FE] = 0xFF
+	cpu.ram[0x01FF] = 0x7F
+
+	// FF48  48        PHA
+	// FF49  8A        TXA
+	// FF4A  48        PHA
+	// FF4B  98        TYA
+	// FF4C  48        PHA
+	// FF4D  BA        TSX
+	// FF4E  BD 04 01  LDA    $0104,X
+	// FF51  29 10     AND    #$10
+	// FF53  F0 03     BEQ    $FF58
+	// FF55  6C 16 03  JMP    ($0316)
+	// FF58  6C 14 03  JMP    ($0314)
+
+	copy(cpu.ram[0xFF48:0xFF5A], []byte{0x48, 0x8A, 0x48, 0x98, 0x48, 0xBA,
+		0xBD, 0x04, 0x01, 0x29, 0x10, 0xF0,
+		0x03, 0x6C, 0x16, 0x03, 0x6C, 0x14, 0x03})
+
+	cpu.status(0x04)
+	cpu.stack = 0xFD
+	cpu.pc = 0x0801
 }
 
 func (cpu *Cpu) step() {
 	cpu.lastPc = cpu.pc
 
-	ir := cpu.read(cpu.pc)
-	fmt.Printf("ir 0x%X mode %s cycles %d opcode %s byte %d addr 0x%X\n", ir, AddressingMode[ir], Cycles[ir], Opcodes[ir], Bytes[ir], cpu.pc)
+	switch cpu.pc {
+	case 0xFFD2:
+		cpu.ram[0x030C] = 0
+		if cpu.ac == 0x0D {
+			fmt.Printf("\n")
+		} else if strconv.IsPrint(rune(cpu.ac)) {
+			fmt.Printf("%c", cpu.ac)
+		} else {
+			fmt.Printf("-%X-", cpu.ac)
+		}
+		lo := cpu.pull()
+		hi := cpu.pull()
+		cpu.pc = uint16(hi)<<8 | uint16(lo)
+		cpu.pc += 1
+		return
 
+	case 0xE16F:
+		os.Exit(0)
+		lo := cpu.read(0xBB)
+		hi := cpu.read(0xBC)
+		start := uint16(hi)<<8 | uint16(lo)
+		length := cpu.read(0xB7)
+		filename := string(cpu.ram[start : start+uint16(length)])
+		fmt.Println("\n", filename)
+		cpu.loadFile("suite/bin/" + strings.ToLower(filename))
+		return
+
+	case 0xFFE4:
+		cpu.ac = 3
+		lo := cpu.pull()
+		hi := cpu.pull()
+		cpu.pc = uint16(hi)<<8 | uint16(lo)
+		cpu.pc += 1
+		return
+
+	case 0x8000, 0xA474:
+		fatal("exit trap")
+	}
+
+	ir := cpu.read(cpu.pc)
 	address := uint16(0)
 	immediate := false
+	accumulator := false
 
 	switch AddressingMode[ir] {
 	case "abs":
 		address = uint16(cpu.read(cpu.pc+2))<<8 | uint16(cpu.read(cpu.pc+1))
+	case "absx":
+		address = uint16(cpu.read(cpu.pc+2))<<8 | uint16(cpu.read(cpu.pc+1))
+		address += uint16(cpu.x)
+	case "absy":
+		address = uint16(cpu.read(cpu.pc+2))<<8 | uint16(cpu.read(cpu.pc+1))
+		address += uint16(cpu.y)
 	case "zp":
 		address = uint16(cpu.read(cpu.pc + 1))
+
+	case "zpx":
+		address = uint16(cpu.read(cpu.pc+1) + cpu.x)
+
+	case "zpy":
+		address = uint16(cpu.read(cpu.pc+1) + cpu.y)
 
 	case "izy":
 		base := uint16((cpu.read(cpu.pc + 1)))
 		address = uint16(cpu.read(base+1))<<8 | uint16(cpu.read(base))
 		address += uint16(cpu.y)
 
-	case "im":
-		immediate = true
-	case "": // never mind
-	default:
-		fmt.Println("addressing mode not implemented")
-	}
+	case "izx":
+		val := cpu.read(cpu.pc + 1)
+		base := uint16(val + cpu.x)
+		address = uint16(cpu.read(base+1))<<8 | uint16(cpu.read(base))
 
-	if address != 0 {
-		fmt.Printf("address 0x%X\n", address)
+	case "ind":
+		base := uint16((cpu.read(cpu.pc + 1)))
+		address = uint16(cpu.read(base+1))<<8 | uint16(cpu.read(base))
+		address = uint16(cpu.read(address+1))<<8 | uint16(cpu.read(address))
+	case "imm":
+		immediate = true
+	case "acc":
+		accumulator = true
+	case "", "rel": // never mind
+	default:
+		fatal("unknown addressing mode not implemented %x", AddressingMode[ir])
 	}
 
 	switch Opcodes[ir] {
@@ -196,53 +289,146 @@ func (cpu *Cpu) step() {
 		cpu.fDecimal = false
 	case "CLC":
 		cpu.fCarry = false
+	case "SEC":
+		cpu.fCarry = true
 	case "SEI":
 		cpu.fInterruptDisable = true
+	case "SED":
+		cpu.fDecimal = true
+	case "CLI":
+		cpu.fInterruptDisable = false
+	case "CLV":
+		cpu.fOverflow = false
 	case "LDA":
-		cpu.ac = cpu.read(address)
+		cpu.ac = cpu.val(immediate, address)
 		cpu.zeroNeg(cpu.ac)
 	case "LDX":
 		cpu.x = cpu.val(immediate, address)
 		cpu.zeroNeg(cpu.x)
 	case "LDY":
 		cpu.y = cpu.val(immediate, address)
-		cpu.zeroNeg(cpu.x)
+		cpu.zeroNeg(cpu.y)
 	case "CMP":
-		temp := cpu.ac - cpu.val(immediate, address)
-		cpu.fCarry = temp >= 0
-		cpu.zeroNeg(temp)
+		val := cpu.val(immediate, address)
+		cpu.fCarry = cpu.ac >= val
+		cpu.zeroNeg(cpu.ac - val)
 	case "CPY":
-		temp := cpu.y - cpu.val(immediate, address)
-		cpu.fCarry = temp >= 0
-		cpu.zeroNeg(temp)
+		val := cpu.val(immediate, address)
+		cpu.fCarry = cpu.y >= val
+		cpu.zeroNeg(cpu.y - val)
+	case "CPX":
+		val := cpu.val(immediate, address)
+		cpu.fCarry = cpu.x >= val
+		cpu.zeroNeg(cpu.x - val)
 	case "ADC":
-		cpu.ac = cpu.ac + uint8(cpu.val(immediate, address)) + cpu.carry()
-		if uint16(cpu.ac)+uint16(cpu.val(immediate, address))+uint16(cpu.carry()) > 255 {
-			cpu.fCarry = true
-		}
+		val := cpu.val(immediate, address)
+		temp := uint16(cpu.ac) + uint16(val) + uint16(cpu.carry())
+		cpu.fCarry = temp > 0xFF
+		cpu.fOverflow = !((cpu.ac^val)&0x80 == 0x0) && (cpu.ac^uint8(temp))&0x80 == 0x80
+		cpu.ac = uint8(temp)
 		cpu.zeroNeg(cpu.ac)
+	case "SBC":
+		val := cpu.val(immediate, address)
+		temp := int(cpu.ac) - int(val) - (1 - int(cpu.carry()))
+		cpu.fCarry = !(temp < 0)
+		cpu.fOverflow = (cpu.ac^uint8(temp))&0x80 != 0 && ((cpu.ac^val)&0x80) != 0
+		cpu.ac = cpu.ac - val - (1 - cpu.carry())
+		cpu.zeroNeg(cpu.ac)
+	case "ASL":
+		if accumulator {
+			cpu.fCarry = (cpu.ac>>7)&1 == 1
+			cpu.ac = cpu.ac << 1
+			cpu.zeroNeg(cpu.ac)
+		} else {
+			val := cpu.val(immediate, address)
+			cpu.fCarry = (val>>7)&1 == 1
+			val = val << 1
+			cpu.write(address, val)
+			cpu.zeroNeg(val)
+		}
+
+	case "LSR":
+		if accumulator {
+			cpu.fCarry = (cpu.ac & 0x01) == 1
+			cpu.ac = cpu.ac >> 1
+			cpu.zeroNeg(cpu.ac)
+		} else {
+			val := cpu.val(immediate, address)
+			cpu.fCarry = (val & 0x01) == 1
+			val = val >> 1
+			cpu.write(address, val)
+			cpu.zeroNeg(val)
+		}
+
+	case "ROL":
+		c := cpu.carry()
+		if accumulator {
+			cpu.fCarry = (cpu.ac >> 7) == 1
+			cpu.ac = cpu.ac<<1 | c
+			cpu.zeroNeg(cpu.ac)
+		} else {
+			val := cpu.val(immediate, address)
+			cpu.fCarry = (val >> 7) == 1
+			val = val<<1 | c
+			cpu.write(address, val)
+			cpu.zeroNeg(val)
+		}
+	case "ROR":
+		c := cpu.carry() << 7
+		if accumulator {
+			cpu.fCarry = (cpu.ac & 0x01) == 1
+			cpu.ac = cpu.ac>>1 | c
+			cpu.zeroNeg(cpu.ac)
+		} else {
+			val := cpu.val(immediate, address)
+			cpu.fCarry = (val & 0x01) == 1
+			val = val>>1 | c
+			cpu.write(address, val)
+			cpu.zeroNeg(val)
+		}
+
 	case "BPL":
 		if !cpu.fNegative {
-			cpu.pc = uint16(int(cpu.pc) + int(cpu.read(cpu.pc+1)) - 2)
+			cpu.pc = uint16(int(cpu.pc) + int(int8(cpu.read(cpu.pc+1))))
+		}
+	case "BMI":
+		if cpu.fNegative {
+			cpu.pc = uint16(int(cpu.pc) + int(int8(cpu.read(cpu.pc+1))))
 		}
 	case "BNE":
 		if !cpu.fZero {
-			cpu.pc = uint16(int(cpu.pc) + int(cpu.read(cpu.pc+1)) - 2)
+			cpu.pc = uint16(int(cpu.pc) + int(int8(cpu.read(cpu.pc+1))))
 		}
 	case "BEQ":
 		if cpu.fZero {
-			cpu.pc = uint16(int(cpu.pc) + int(cpu.read(cpu.pc+1)) - 2)
+			cpu.pc = uint16(int(cpu.pc) + int(int8(cpu.read(cpu.pc+1))))
 		}
 	case "BCC":
+		if !cpu.fCarry {
+			cpu.pc = uint16(int(cpu.pc) + int(int8(cpu.read(cpu.pc+1))))
+		}
+	case "BCS":
 		if cpu.fCarry {
-			cpu.pc = uint16(int(cpu.pc) + int(cpu.read(cpu.pc+1)) - 2)
+			cpu.pc = uint16(int(cpu.pc) + int(int8(cpu.read(cpu.pc+1))))
+		}
+	case "BVC":
+		if !cpu.fOverflow {
+			cpu.pc = uint16(int(cpu.pc) + int(int8(cpu.read(cpu.pc+1))))
+		}
+	case "BVS":
+		if cpu.fOverflow {
+			cpu.pc = uint16(int(cpu.pc) + int(int8(cpu.read(cpu.pc+1))))
 		}
 	case "JSR":
 		cpu.push(uint8((cpu.pc + 2) >> 8))
 		cpu.push(uint8((cpu.pc + 2) & 0xFF))
 		cpu.pc = address
+	case "RTS":
+		lo := cpu.pull()
+		hi := cpu.pull()
+		cpu.pc = uint16(hi)<<8 | uint16(lo)
+		cpu.pc += 1
 	case "JMP":
-		fmt.Printf("jmp 0x%X\n", address)
 		cpu.pc = address
 		// page boundary fix
 	case "STX":
@@ -251,44 +437,91 @@ func (cpu *Cpu) step() {
 		cpu.write(address, cpu.y)
 	case "STA":
 		cpu.write(address, cpu.ac)
+	case "INX":
+		cpu.x += 1
+		cpu.zeroNeg(cpu.x)
+	case "INY":
+		cpu.y += 1
+		cpu.zeroNeg(cpu.y)
 	case "DEX":
 		cpu.x -= 1
 		cpu.zeroNeg(cpu.x)
 	case "DEY":
 		cpu.y -= 1
 		cpu.zeroNeg(cpu.y)
+	case "INC":
+		temp := cpu.val(immediate, address) + 1
+		cpu.zeroNeg(temp)
+		cpu.write(address, temp)
 	case "DEC":
-		temp := cpu.read(address) - 1
+		temp := cpu.val(immediate, address) - 1
 		cpu.zeroNeg(temp)
 		cpu.write(address, temp)
 	case "TXS":
 		cpu.stack = cpu.x
+	case "TSX":
+		cpu.x = cpu.stack
+		cpu.zeroNeg(cpu.x)
 	case "TXA":
 		cpu.ac = cpu.x
 		cpu.zeroNeg(cpu.ac)
 	case "TAX":
 		cpu.x = cpu.ac
 		cpu.zeroNeg(cpu.x)
+	case "TAY":
+		cpu.y = cpu.ac
+		cpu.zeroNeg(cpu.y)
 	case "TYA":
 		cpu.ac = cpu.y
 		cpu.zeroNeg(cpu.ac)
 	case "EOR":
 		cpu.ac = cpu.ac ^ cpu.val(immediate, address)
 		cpu.zeroNeg(cpu.ac)
+	case "ORA":
+		cpu.ac = cpu.ac | cpu.val(immediate, address)
+		cpu.zeroNeg(cpu.ac)
+	case "AND":
+		cpu.ac = cpu.ac & cpu.val(immediate, address)
+		cpu.zeroNeg(cpu.ac)
 	case "BIT":
-		temp := cpu.ac & cpu.val(immediate, address)
-		cpu.zeroNeg(temp)
-		cpu.fOverflow = (temp >> 6) & 1
+		val := cpu.val(immediate, address)
+		cpu.fZero = cpu.ac&val == 0
+		cpu.fOverflow = (val>>6)&1 == 1
+		cpu.fNegative = (val>>7)&1 == 1
 	case "PLA":
 		cpu.ac = cpu.pull()
 		cpu.zeroNeg(cpu.ac)
+	case "PLP":
+		cpu.status(cpu.pull())
+	case "PHP":
+		cpu.fBreak = true
+		cpu.push(cpu.getStatus())
+	case "PHA":
+		cpu.push(cpu.ac)
+	case "NOP":
+	case "RTI":
+		cpu.status(cpu.pull())
+		lo := cpu.pull()
+		hi := cpu.pull()
+		cpu.pc = uint16(hi)<<8 | uint16(lo)
+	case "BRK":
+		cpu.push(uint8((cpu.pc + 1) >> 8))
+		cpu.push(uint8((cpu.pc + 1) & 0xFF))
+		cpu.push(cpu.getStatus())
+		cpu.pc = uint16(cpu.read(0xFFFF))<<8 | uint16(cpu.read(0xFFFE))
+		cpu.fBreak = true
+		fatal("\nbreak\n")
 	default:
+		fmt.Printf("ir 0x%X mode %s cycles %d opcode %s byte %d addr 0x%X  ", ir, AddressingMode[ir], Cycles[ir], Opcodes[ir], Bytes[ir], cpu.pc)
 		fatal("not implemented")
 	}
 
 	if Bytes[ir] > 0 {
 		cpu.pc += uint16(Bytes[ir])
 	}
+
+	// fmt.Printf("ir 0x%X mode %s cycles %d opcode %s byte %d addr 0x%X  ", ir, AddressingMode[ir], Cycles[ir], Opcodes[ir], Bytes[ir], cpu.pc)
+	// cpu.inspect()
 }
 
 func (cpu *Cpu) read(address uint16) byte {
@@ -323,16 +556,20 @@ func (cpu *Cpu) zeroNeg(val uint8) {
 }
 
 func (cpu *Cpu) push(val uint8) {
-	cpu.write(0x1000|uint16(cpu.stack), val)
+	cpu.write(0x0100|uint16(cpu.stack), val)
 	cpu.stack -= 1
 }
 
 func (cpu *Cpu) pull() uint8 {
 	cpu.stack += 1
-	return cpu.read(0x1000 | uint16(cpu.stack-1))
+	return cpu.read(0x0100 | uint16(cpu.stack))
 }
 
 func (cpu *Cpu) val(immediate bool, address uint16) uint8 {
+	if address == 0 && !immediate {
+		fatal("invalid address")
+	}
+
 	var val byte
 	if immediate {
 		val = cpu.read(cpu.pc + 1)
@@ -348,4 +585,64 @@ func (cpu *Cpu) carry() uint8 {
 		return 1
 	}
 	return 0
+}
+
+// status byte
+// 7 6 5 4 3 2 1 0
+// | | | | | | | -- carry
+// | | | | | | -- zero
+// | | | | | -- interrupt disable
+// | | | | -- decimal
+// | | | -- break
+// | | -- unused (always 1)
+// | -- overflow
+// -- negative
+func (cpu *Cpu) status(val uint8) {
+	cpu.fCarry = val&1 == 1
+	cpu.fZero = (val>>1)&1 == 1
+	cpu.fInterruptDisable = (val>>2)&1 == 1
+	cpu.fDecimal = (val>>3)&1 == 1
+	cpu.fBreak = (val>>4)&1 == 1
+	cpu.fNotUsed = (val>>5)&1 == 1
+	cpu.fOverflow = (val>>6)&1 == 1
+	cpu.fNegative = (val>>7)&1 == 1
+}
+
+func (cpu *Cpu) getStatus() uint8 {
+	status := uint8(0)
+	if cpu.fCarry {
+		status |= 0x01
+	}
+
+	if cpu.fZero {
+		status |= 0x02
+	}
+
+	if cpu.fInterruptDisable {
+		status |= 0x04
+	}
+
+	if cpu.fDecimal {
+		status |= 0x08
+	}
+
+	if cpu.fBreak {
+		status |= 0x10
+	}
+
+	status |= 0x20
+
+	if cpu.fOverflow {
+		status |= 0x40
+	}
+
+	if cpu.fNegative {
+		status |= 0x80
+	}
+
+	return status
+}
+
+func (cpu *Cpu) inspect() {
+	fmt.Printf("pc: %X, ac: %X , x: %X, y: %X, stack: %X status: %b\n", cpu.pc, cpu.ac, cpu.x, cpu.y, cpu.stack, cpu.getStatus())
 }

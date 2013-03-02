@@ -14,10 +14,10 @@ func main() {
 	// rom := LoadRom(args[1])
 	// ppu := newPpu(rom)
 	// cpu := newCpu(rom, ppu)
-	cpu := testCpu(args[1])
-	for {
-		cpu.step()
-	}
+	// cpu := testCpu(args[1])
+	// for {
+	// 	cpu.step()
+	// }
 }
 
 func fatal(message ...interface{}) {

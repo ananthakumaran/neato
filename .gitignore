@@ -3,3 +3,6 @@ notes/*
 roms/*
 .DS_Store
 src/neato/suite/*
+pkg/*
+command-line-arguments.test
+src/neato/neato

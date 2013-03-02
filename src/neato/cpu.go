@@ -2,9 +2,7 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"strconv"
-	"strings"
+	"neato/petascii"
 )
 
 var Cycles = [0x100]int{
@@ -109,8 +107,7 @@ type Cpu struct {
 	rom Rom
 	ppu Ppu
 
-	lastPc uint16
-	ram    []byte
+	ram []byte
 
 	// registers
 	pc    uint16
@@ -128,6 +125,9 @@ type Cpu struct {
 	fNotUsed          bool
 	fOverflow         bool
 	fNegative         bool
+
+	// output
+	printer *petascii.Printer
 }
 
 func newCpu(rom Rom, ppu Ppu) Cpu {
@@ -142,101 +142,7 @@ func newCpu(rom Rom, ppu Ppu) Cpu {
 	return cpu
 }
 
-func testCpu(filename string) Cpu {
-	cpu := Cpu{}
-	cpu.ram = make([]byte, 0x10000)
-	cpu.loadFile(filename)
-	return cpu
-}
-
-func (cpu *Cpu) loadFile(filename string) {
-	file, err := os.Open(filename)
-	if err != nil {
-		fatal("file not found: ", filename)
-	}
-
-	add := make([]byte, 2)
-	count, err := file.Read(add)
-	if err != nil || count != 2 {
-		fatal("invalid file")
-	}
-	start := uint16(add[1])<<8 + uint16(add[0])
-
-	count, err = file.Read(cpu.ram[start:])
-	if err != nil || count == 0 {
-		fatal("invalid file")
-	}
-
-	cpu.ram[0x0002] = 0x00
-	cpu.ram[0xA002] = 0x00
-	cpu.ram[0xA003] = 0x80
-	cpu.ram[0xFFFE] = 0x48
-	cpu.ram[0xFFFF] = 0xFF
-	cpu.ram[0x01FE] = 0xFF
-	cpu.ram[0x01FF] = 0x7F
-
-	// FF48  48        PHA
-	// FF49  8A        TXA
-	// FF4A  48        PHA
-	// FF4B  98        TYA
-	// FF4C  48        PHA
-	// FF4D  BA        TSX
-	// FF4E  BD 04 01  LDA    $0104,X
-	// FF51  29 10     AND    #$10
-	// FF53  F0 03     BEQ    $FF58
-	// FF55  6C 16 03  JMP    ($0316)
-	// FF58  6C 14 03  JMP    ($0314)
-
-	copy(cpu.ram[0xFF48:0xFF5A], []byte{0x48, 0x8A, 0x48, 0x98, 0x48, 0xBA,
-		0xBD, 0x04, 0x01, 0x29, 0x10, 0xF0,
-		0x03, 0x6C, 0x16, 0x03, 0x6C, 0x14, 0x03})
-
-	cpu.status(0x04)
-	cpu.stack = 0xFD
-	cpu.pc = 0x0801
-}
-
 func (cpu *Cpu) step() {
-	cpu.lastPc = cpu.pc
-
-	switch cpu.pc {
-	case 0xFFD2:
-		cpu.ram[0x030C] = 0
-		if cpu.ac == 0x0D {
-			fmt.Printf("\n")
-		} else if strconv.IsPrint(rune(cpu.ac)) {
-			fmt.Printf("%c", cpu.ac)
-		} else {
-			fmt.Printf("-%X-", cpu.ac)
-		}
-		lo := cpu.pull()
-		hi := cpu.pull()
-		cpu.pc = uint16(hi)<<8 | uint16(lo)
-		cpu.pc += 1
-		return
-
-	case 0xE16F:
-		os.Exit(0)
-		lo := cpu.read(0xBB)
-		hi := cpu.read(0xBC)
-		start := uint16(hi)<<8 | uint16(lo)
-		length := cpu.read(0xB7)
-		filename := string(cpu.ram[start : start+uint16(length)])
-		fmt.Println("\n", filename)
-		cpu.loadFile("suite/bin/" + strings.ToLower(filename))
-		return
-
-	case 0xFFE4:
-		cpu.ac = 3
-		lo := cpu.pull()
-		hi := cpu.pull()
-		cpu.pc = uint16(hi)<<8 | uint16(lo)
-		cpu.pc += 1
-		return
-
-	case 0x8000, 0xA474:
-		fatal("exit trap")
-	}
 
 	ir := cpu.read(cpu.pc)
 	address := uint16(0)

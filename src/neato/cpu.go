@@ -322,18 +322,62 @@ func (cpu *Cpu) step() {
 		cpu.zeroNeg(cpu.x - val)
 	case "ADC":
 		val := cpu.val(immediate, address)
-		temp := uint16(cpu.ac) + uint16(val) + uint16(cpu.carry())
-		cpu.fCarry = temp > 0xFF
-		cpu.fOverflow = !((cpu.ac^val)&0x80 == 0x0) && (cpu.ac^uint8(temp))&0x80 == 0x80
-		cpu.ac = uint8(temp)
-		cpu.zeroNeg(cpu.ac)
+		if cpu.fDecimal {
+			cpu.fZero = (int(val&0xff)+int(cpu.ac&0xff)+int(cpu.carry()))&0xff == 0
+			al := int(cpu.ac&0x0F) + int(val&0x0F) + int(cpu.carry())
+			if al >= 0x0A {
+				al = (al+0x06)&0x0F + 0x10
+			}
+
+			a := int(cpu.ac&0xF0) + int(val&0xF0) + al
+			sa := int(int8(cpu.ac&0xF0)) + int(int8(val&0xF0)) + int(al)
+			cpu.fNegative = a>>7&1 == 1
+			cpu.fOverflow = sa < -128 || sa > 127
+			if a >= 0xA0 {
+				a += 0x60
+			}
+			cpu.fCarry = a >= 0x100
+			cpu.ac = uint8(a & 0xFF)
+
+		} else {
+			result := int(val&0xff) + int(cpu.ac&0xff) + int(cpu.carry())
+			carry6 := int(val&0x7f) + int(cpu.ac&0x7f) + int(cpu.carry())
+			cpu.fCarry = result&0x100 != 0
+			cpu.fOverflow = Xor(cpu.fCarry, ((carry6 & 0x80) != 0))
+			cpu.ac = uint8(result & 0xff)
+			cpu.zeroNeg(cpu.ac)
+		}
+
 	case "SBC":
 		val := cpu.val(immediate, address)
-		temp := int(cpu.ac) - int(val) - (1 - int(cpu.carry()))
-		cpu.fCarry = !(temp < 0)
-		cpu.fOverflow = (cpu.ac^uint8(temp))&0x80 != 0 && ((cpu.ac^val)&0x80) != 0
-		cpu.ac = cpu.ac - val - (1 - cpu.carry())
-		cpu.zeroNeg(cpu.ac)
+		a := 0
+
+		if cpu.fDecimal {
+			al := int(cpu.ac&0x0F) - int(val&0x0f) + (int(cpu.carry()) - 1)
+			if al < 0 {
+				al = ((al - 0x06) & 0x0F) - 0x10
+			}
+			a = int(cpu.ac&0xF0) - int(val&0xF0) + al
+			if a < 0 {
+				a -= 0x60
+			}
+		}
+
+		val = ^val
+		result := int(val)&0xff + int(cpu.ac)&0xff + int(cpu.carry())
+		carry6 := int(val)&0x7f + int(cpu.ac)&0x7f + int(cpu.carry())
+		cpu.fCarry = result&0x100 != 0
+		cpu.fOverflow = Xor(cpu.fCarry, ((carry6 & 0x80) != 0))
+		result &= 0xff
+		cpu.fZero = result == 0
+		cpu.fNegative = result&0x80 != 0
+
+		if cpu.fDecimal {
+			cpu.ac = uint8(a & 0xff)
+		} else {
+			cpu.ac = uint8(result)
+		}
+
 	case "ASL":
 		if accumulator {
 			cpu.fCarry = (cpu.ac>>7)&1 == 1
@@ -519,9 +563,6 @@ func (cpu *Cpu) step() {
 	if Bytes[ir] > 0 {
 		cpu.pc += uint16(Bytes[ir])
 	}
-
-	// fmt.Printf("ir 0x%X mode %s cycles %d opcode %s byte %d addr 0x%X  ", ir, AddressingMode[ir], Cycles[ir], Opcodes[ir], Bytes[ir], cpu.pc)
-	// cpu.inspect()
 }
 
 func (cpu *Cpu) read(address uint16) byte {
@@ -645,4 +686,8 @@ func (cpu *Cpu) getStatus() uint8 {
 
 func (cpu *Cpu) inspect() {
 	fmt.Printf("pc: %X, ac: %X , x: %X, y: %X, stack: %X status: %b\n", cpu.pc, cpu.ac, cpu.x, cpu.y, cpu.stack, cpu.getStatus())
+}
+
+func Xor(a, b bool) bool {
+	return (a || b) && !(a && b)
 }

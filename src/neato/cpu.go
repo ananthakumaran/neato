@@ -5,6 +5,12 @@ import (
 	"neato/petascii"
 )
 
+const (
+	IRQ   = 0
+	NMI   = 1
+	RESET = 2
+)
+
 var Cycles = [0x100]int{
 	0, 6, -1, 8, 3, 3, 5, 5, 3, 2, 2, 2, 4, 4, 6, 6,
 	3, 5, -1, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,
@@ -104,10 +110,10 @@ var AddressingMode = [0x100]string{
 	"", "absy", "absx", "absx", "absx"}
 
 type Cpu struct {
-	rom Rom
-	ppu Ppu
+	rom *Rom
+	ppu *Ppu
 
-	ram []byte
+	ram *Memory
 
 	// registers
 	pc    uint16
@@ -128,21 +134,47 @@ type Cpu struct {
 
 	// output
 	printer *petascii.Printer
+
+	// interrupts
+	pendingInterruptRequest bool
+	interruptType           int
 }
 
-func newCpu(rom Rom, ppu Ppu) Cpu {
+func newCpu(rom *Rom, ppu *Ppu) *Cpu {
 	cpu := Cpu{}
 	cpu.rom = rom
-	cpu.ram = make([]byte, 0x10000)
-	copy(cpu.ram[0x8000:0xC000], rom.PrgRoms[0])
-	copy(cpu.ram[0xC000:0x10000], rom.PrgRoms[0])
+	cpu.ram = newMemory(0xFFFF)
+	cpu.ram.copy(0x8000, 0xC000, rom.PrgRoms[0])
+
+	switch rom.PrgRomCount {
+	case 1:
+		cpu.ram.copy(0xC000, 0x10000, rom.PrgRoms[0])
+	case 2:
+		cpu.ram.copy(0xC000, 0x10000, rom.PrgRoms[1])
+	default:
+		fatal("uknown prg rom count")
+	}
+
+	// IO registers
+	cpu.ram.readCallback(0x2000, 0x2007, func(address uint16) byte { return cpu.ppu.read(address) })
+	cpu.ram.writeCallback(0x2000, 0x2007, func(address uint16, val byte) { cpu.ppu.write(address, val) })
+	cpu.ram.readCallback(0x4000, 0x401F, func(address uint16) byte { return cpu.ppu.read(address) })
+	cpu.ram.writeCallback(0x4000, 0x401F, func(address uint16, val byte) { cpu.ppu.write(address, val) })
+
+	cpu.ram.mirror(0x0000, 0x07FF, 0x0800, 0x1FFF)
+	cpu.ram.mirror(0x2000, 0x2007, 0x2008, 0x3FFF)
 
 	cpu.ppu = ppu
+	debug("\n cpu %p \n", &cpu)
+	ppu.cpu = &cpu
+	debug("\n ppu cpu %p \n", &(ppu.cpu))
 	cpu.reset()
-	return cpu
+	return &cpu
 }
 
-func (cpu *Cpu) step() {
+func (cpu *Cpu) step() int {
+
+	cpu.handleInterrupt()
 
 	ir := cpu.read(cpu.pc)
 	address := uint16(0)
@@ -460,7 +492,7 @@ func (cpu *Cpu) step() {
 		cpu.push(cpu.getStatus())
 		cpu.pc = uint16(cpu.read(0xFFFF))<<8 | uint16(cpu.read(0xFFFE))
 		cpu.fBreak = true
-		fatal("\nbreak\n")
+		//fatal("\nbreak\n")
 	default:
 		fmt.Printf("ir 0x%X mode %s cycles %d opcode %s byte %d addr 0x%X  ", ir, AddressingMode[ir], Cycles[ir], Opcodes[ir], Bytes[ir], cpu.pc)
 		fatal("not implemented")
@@ -469,32 +501,24 @@ func (cpu *Cpu) step() {
 	if Bytes[ir] > 0 {
 		cpu.pc += uint16(Bytes[ir])
 	}
+
+	// fmt.Printf("opcode %s ir 0x%X mode %s cycles %d  byte %d addr 0x%X  ", Opcodes[ir], ir, AddressingMode[ir], Cycles[ir], Bytes[ir], cpu.pc)
+	// cpu.inspect()
+	return Cycles[ir]
 }
 
 func (cpu *Cpu) read(address uint16) byte {
-	// switch address {
-	// case 0x2002:
-	// 	status := cpu.ppu.status
-	// 	cpu.ppu.vBlank(false)
-	// 	return status
-	// }
-	return cpu.ram[address]
+	return cpu.ram.read(address)
+
 }
 
 func (cpu *Cpu) write(address uint16, val uint8) {
-	switch address {
-	// case 0x2000:
-	// 	cpu.ppu.controlRegister1(val)
-	// case 0x2001:
-	// 	cpu.ppu.controlRegister2(val)
-	default:
-		cpu.ram[address] = val
-	}
+	cpu.ram.write(address, val)
 }
 
 func (cpu *Cpu) reset() {
 	// OxFFFC & 0xFFFD contains the intital PC register
-	cpu.pc = (uint16(cpu.ram[0xFFFD]) << 8) | uint16(cpu.ram[0xFFFC])
+	cpu.pc = (uint16(cpu.ram.read(0xFFFD)) << 8) | uint16(cpu.ram.read(0xFFFC))
 }
 
 func (cpu *Cpu) zeroNeg(val uint8) {
@@ -514,7 +538,7 @@ func (cpu *Cpu) pull() uint8 {
 
 func (cpu *Cpu) val(immediate bool, address uint16) uint8 {
 	if address == 0 && !immediate {
-		fatal("invalid address")
+		//fatal("invalid address")
 	}
 
 	var val byte
@@ -591,9 +615,43 @@ func (cpu *Cpu) getStatus() uint8 {
 }
 
 func (cpu *Cpu) inspect() {
-	fmt.Printf("pc: %X, ac: %X , x: %X, y: %X, stack: %X status: %b\n", cpu.pc, cpu.ac, cpu.x, cpu.y, cpu.stack, cpu.getStatus())
+	debug("pc: %X, ac: %X , x: %X, y: %X, stack: %X status: %b\n", cpu.pc, cpu.ac, cpu.x, cpu.y, cpu.stack, cpu.getStatus())
 }
 
 func Xor(a, b bool) bool {
 	return (a || b) && !(a && b)
+}
+
+func (cpu *Cpu) handleInterrupt() {
+	if cpu.pendingInterruptRequest {
+		switch cpu.interruptType {
+		case IRQ:
+			if !cpu.fInterruptDisable {
+				cpu.push(uint8((cpu.pc + 1) >> 8))
+				cpu.push(uint8((cpu.pc + 1) & 0xFF))
+				cpu.push(cpu.getStatus())
+				cpu.pc = uint16(cpu.read(0xFFFF))<<8 | uint16(cpu.read(0xFFFE))
+
+			}
+		case NMI:
+			debug("\n nmi request test \n")
+			if cpu.ppu.nmiOnVBlank {
+				debug("\n vblank nmi \n")
+				cpu.push(uint8((cpu.pc + 1) >> 8))
+				cpu.push(uint8((cpu.pc + 1) & 0xFF))
+				cpu.push(cpu.getStatus())
+				cpu.pc = uint16(cpu.read(0xFFFA))<<8 | uint16(cpu.read(0xFFFB))
+			}
+		case RESET:
+			cpu.pc = uint16(cpu.read(0xFFFA))<<8 | uint16(cpu.read(0xFFFB))
+		}
+
+		cpu.fInterruptDisable = true
+		cpu.pendingInterruptRequest = false
+	}
+}
+
+func (cpu *Cpu) Interrupt(interruptType int) {
+	cpu.pendingInterruptRequest = true
+	cpu.interruptType = interruptType
 }

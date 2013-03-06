@@ -12,7 +12,8 @@ type Rom struct {
 	ChrRoms     [][]byte
 }
 
-func LoadRom(filename string) Rom {
+func LoadRom(filename string) *Rom {
+	rom := Rom{}
 	file, err := os.Open(filename)
 	if err != nil {
 		fatal("file not found: ", filename)
@@ -30,21 +31,29 @@ func LoadRom(filename string) Rom {
 		fatal("invalid file format")
 	}
 
-	PrgRomCount := header[4]
-	fmt.Println("prg count", PrgRomCount)
-	ChrRomCount := header[5]
-	fmt.Println("chr count", ChrRomCount)
+	rom.PrgRomCount = int(header[4])
+	fmt.Println("prg count", rom.PrgRomCount)
+	rom.ChrRomCount = int(header[5])
+	fmt.Println("chr count", rom.ChrRomCount)
 
 	mapper := (header[6]&0xF0)>>4 | (header[7] & 0xF0)
+
+	mirroring := ""
+
+	if header[6]&0x01 == 1 {
+		mirroring = "vertical"
+	} else {
+		mirroring = "horizontal"
+	}
+
+	fmt.Println("mirroring ", mirroring)
 
 	fmt.Println("mapper ", mapper)
 
 	fmt.Println("control")
 
-	rom := Rom{}
-
-	rom.PrgRoms = make([][]byte, PrgRomCount)
-	for i := byte(0); i < PrgRomCount; i++ {
+	rom.PrgRoms = make([][]byte, rom.PrgRomCount)
+	for i := 0; i < rom.PrgRomCount; i++ {
 		rom.PrgRoms[i] = make([]byte, 0x4000)
 		count, err := file.Read(rom.PrgRoms[i])
 		if err != nil || count != 0x4000 {
@@ -52,8 +61,8 @@ func LoadRom(filename string) Rom {
 		}
 	}
 
-	rom.ChrRoms = make([][]byte, ChrRomCount)
-	for i := byte(0); i < ChrRomCount; i++ {
+	rom.ChrRoms = make([][]byte, rom.ChrRomCount)
+	for i := 0; i < rom.ChrRomCount; i++ {
 		rom.ChrRoms[i] = make([]byte, 0x2000)
 		count, err := file.Read(rom.ChrRoms[i])
 		if err != nil || count != 0x2000 {
@@ -61,5 +70,5 @@ func LoadRom(filename string) Rom {
 		}
 	}
 
-	return rom
+	return &rom
 }

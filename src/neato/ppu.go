@@ -7,6 +7,9 @@ const (
 	VERTICAL_PIXES_PER_TILE    = 8
 
 	PATTERN_BYTES_PER_TILE = 16
+
+	SCREEN_WIDTH  = 256
+	SCREEN_HEIGHT = 240
 )
 
 var colorPalette = [][]byte{
@@ -499,7 +502,10 @@ func (ppu *Ppu) step() {
 		}
 	}
 
-	if ppu.scanline >= 0 && ppu.scanline <= 239 {
-		ppu.renderPixel()
+	if ppu.scanline >= 0 && ppu.scanline < SCREEN_HEIGHT {
+		if ppu.currentScanlineCycle >= 0 && ppu.currentScanlineCycle < SCREEN_WIDTH {
+			ppu.renderPixel()
+		}
+
 	}
 }

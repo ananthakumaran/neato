@@ -588,7 +588,6 @@ func (cpu *Cpu) step() int {
 		lo := cpu.pull()
 		hi := cpu.pull()
 		cpu.pc = uint16(hi)<<8 | uint16(lo)
-		cpu.pc--
 		info("\npoping address %04X\n", cpu.pc)
 	case "BRK":
 		cpu.push(uint8((cpu.pc + 1) >> 8))
@@ -753,8 +752,8 @@ func (cpu *Cpu) handleInterrupt() {
 		switch cpu.interruptType {
 		case IRQ:
 			if !cpu.fInterruptDisable {
-				cpu.push(uint8((cpu.pc + 1) >> 8))
-				cpu.push(uint8((cpu.pc + 1) & 0xFF))
+				cpu.push(uint8((cpu.pc) >> 8))
+				cpu.push(uint8((cpu.pc) & 0xFF))
 				cpu.push(cpu.getStatus())
 				cpu.pc = uint16(cpu.read(0xFFFF))<<8 | uint16(cpu.read(0xFFFE))
 
@@ -763,8 +762,8 @@ func (cpu *Cpu) handleInterrupt() {
 			if cpu.ppu.nmiOnVBlank {
 				info("vblank on nmi")
 				info("\npushing address %04X\n", cpu.pc+1)
-				cpu.push(uint8((cpu.pc + 1) >> 8))
-				cpu.push(uint8((cpu.pc + 1) & 0xFF))
+				cpu.push(uint8((cpu.pc) >> 8))
+				cpu.push(uint8((cpu.pc) & 0xFF))
 				cpu.push(cpu.getStatus())
 				cpu.pc = uint16(cpu.read(0xFFFB))<<8 | uint16(cpu.read(0xFFFA))
 			}

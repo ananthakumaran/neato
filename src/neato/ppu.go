@@ -122,10 +122,13 @@ type Ppu struct {
 	// bookeeping
 	scanline             int
 	currentScanlineCycle int
+
+	gui *Gui
 }
 
 func newPpu(rom *Rom) *Ppu {
 	ppu := Ppu{}
+	ppu.gui = newGui()
 	ppu.rom = rom
 	ppu.vram = newMemory(0xFFFF)
 
@@ -475,8 +478,7 @@ func (ppu *Ppu) renderPixel() {
 
 	colorIndex := ppu.vram.read(0x3F00 + uint16(backgroundColourIndex))
 	color := colorPalette[colorIndex]
-	//debug("%x", color[0])
-	DrawPixel(x, y, color[0], color[1], color[2])
+	ppu.gui.DrawPixel(x, y, color[0], color[1], color[2])
 	//debug("x %d y %x rgb # %x%x%x\n", x, y, color[0], color[1], color[2])
 }
 
@@ -487,7 +489,7 @@ func (ppu *Ppu) step() {
 		ppu.scanline++
 		if ppu.scanline == 261 {
 			ppu.scanline = -1
-			RefreshScreen()
+			ppu.gui.RefreshScreen()
 		}
 		ppu.currentScanlineCycle = 0
 

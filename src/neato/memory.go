@@ -1,49 +1,35 @@
 package main
 
 type readCallbackFunc func(address uint16) byte
-type readCallback struct {
-	start uint16
-	end   uint16
-	fn    readCallbackFunc
-}
-
 type writeCallbackFunc func(address uint16, val byte)
-type writeCallback struct {
-	start uint16
-	end   uint16
-	fn    writeCallbackFunc
-}
 
 type Memory struct {
 	store          []byte
-	readCallbacks  []readCallback
-	writeCallbacks []writeCallback
+	readCallbacks  []*readCallbackFunc
+	writeCallbacks []*writeCallbackFunc
 }
 
 func newMemory(size uint16) *Memory {
 	memory := Memory{}
 	memory.store = make([]byte, uint32(size)+1)
+	memory.readCallbacks = make([]*readCallbackFunc, uint32(size)+1)
+	memory.writeCallbacks = make([]*writeCallbackFunc, uint32(size)+1)
 	return &memory
 }
 
 func (memory *Memory) read(address uint16) byte {
-	for _, callback := range memory.readCallbacks {
-		if callback.start <= address && callback.end >= address {
-			return callback.fn(address)
-		}
+	if callback := memory.readCallbacks[address]; callback != nil {
+		return (*callback)(address)
 	}
-
 	return memory.store[address]
 }
 
 func (memory *Memory) write(address uint16, value uint8) {
-	for _, callback := range memory.writeCallbacks {
-		if callback.start <= address && callback.end >= address {
-			callback.fn(address, value)
-			return
-		}
+	if callback := memory.writeCallbacks[address]; callback != nil {
+		(*callback)(address, value)
+	} else {
+		memory.store[address] = value
 	}
-	memory.store[address] = value
 }
 
 func (memory *Memory) copy(start, end int, from []byte) {
@@ -51,11 +37,16 @@ func (memory *Memory) copy(start, end int, from []byte) {
 }
 
 func (memory *Memory) readCallback(start, end uint16, callback readCallbackFunc) {
-	memory.readCallbacks = append(memory.readCallbacks, readCallback{start, end, callback})
+
+	for i := uint32(start); i <= uint32(end); i++ {
+		memory.readCallbacks[i] = &callback
+	}
 }
 
 func (memory *Memory) writeCallback(start, end uint16, callback writeCallbackFunc) {
-	memory.writeCallbacks = append(memory.writeCallbacks, writeCallback{start, end, callback})
+	for i := uint32(start); i <= uint32(end); i++ {
+		memory.writeCallbacks[i] = &callback
+	}
 }
 
 func (memory *Memory) mirror(start, end, mstart, mend uint16) {
@@ -67,18 +58,17 @@ func (memory *Memory) mirror(start, end, mstart, mend uint16) {
 		tempEnd := tempStart + interval
 
 		memory.readCallback(tempMirrorStart, uint16(tempEnd), func(address uint16) byte {
-			info("mirror read Original %04X destination %04X\n", address, start+address-tempMirrorStart)
+			//info("mirror read Original %04X destination %04X\n", address, start+address-tempMirrorStart)
 			return memory.read(start + address - tempMirrorStart)
 		})
 
-		memory.writeCallback(tempMirrorStart, uint16(tempEnd), func(address uint16, val byte) {
+		memory.writeCallback(tempMirrorStart, uint16(tempEnd), (func(address uint16, val byte) {
 			memory.write(start+address-tempMirrorStart, val)
-		})
+		}))
 	}
 
 	if uint16(tempStart-1) != mend {
 		debug("mstart %x mend %x", tempStart-1, mend)
 		fatal("invalid mirror arguments")
 	}
-
 }

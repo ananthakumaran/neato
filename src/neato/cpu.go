@@ -12,74 +12,88 @@ const (
 )
 
 var Cycles = [0x100]int{
-	0, 6, -1, 8, 3, 3, 5, 5, 3, 2, 2, 2, 4, 4, 6, 6,
-	3, 5, -1, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,
-	6, 6, -1, 8, 3, 3, 5, 5, 4, 2, 2, 2, 4, 4, 6, 6,
-	2, 5, -1, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,
-	6, 6, -1, 8, 3, 3, 5, 5, 3, 2, 2, 2, 3, 4, 6, 6,
-	3, 5, -1, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,
-	6, 6, -1, 8, 3, 3, 5, 5, 4, 2, 2, 2, 5, 4, 6, 6,
-	2, 5, -1, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,
-	2, 6, 2, 6, 3, 3, 3, 3, 2, 2, 2, 2, 4, 4, 4, 4,
-	3, 6, -1, 6, 4, 4, 4, 4, 2, 5, 2, 5, 5, 5, 5, 5,
-	2, 6, 2, 6, 3, 3, 3, 3, 2, 2, 2, 2, 4, 4, 4, 4,
-	2, 5, -1, 5, 4, 4, 4, 4, 2, 4, 2, 4, 4, 4, 4, 4,
-	2, 6, 2, 8, 3, 3, 5, 5, 2, 2, 2, 2, 4, 4, 6, 6,
-	3, 5, -1, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,
-	2, 6, 2, 8, 3, 3, 5, 5, 2, 2, 2, 2, 4, 4, 6, 6,
-	2, 5, -1, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7}
+	7, 6, -1, 8, 3, 3, 5, 5, 3, 2,
+	2, 2, 4, 4, 6, 6, 2, 5, -1, 8,
+	4, 4, 6, 6, 2, 4, 2, 7, 4, 4,
+	7, 7, 6, 6, -1, 8, 3, 3, 5, 5,
+	4, 2, 2, 2, 4, 4, 6, 6, 2, 5,
+	-1, 8, 4, 4, 6, 6, 2, 4, 2, 7,
+	4, 4, 7, 7, 6, 6, -1, 8, 3, 3,
+	5, 5, 3, 2, 2, 2, 3, 4, 6, 6,
+	2, 5, -1, 8, 4, 4, 6, 6, 2, 4,
+	2, 7, 4, 4, 7, 7, 6, 6, -1, 8,
+	3, 3, 5, 5, 4, 2, 2, 2, 5, 4,
+	6, 6, 2, 5, -1, 8, 4, 4, 6, 6,
+	2, 4, 2, 7, 4, 4, 7, 7, 2, 6,
+	2, 6, 3, 3, 3, 3, 2, 2, 2, 2,
+	4, 4, 4, 4, 2, 6, -1, 6, 4, 4,
+	4, 4, 2, 5, 2, 5, 5, 5, 5, 5,
+	2, 6, 2, 6, 3, 3, 3, 3, 2, 2,
+	2, 2, 4, 4, 4, 4, 2, 5, -1, 5,
+	4, 4, 4, 4, 2, 4, 2, 4, 4, 4,
+	4, 4, 2, 6, 2, 8, 3, 3, 5, 5,
+	2, 2, 2, 2, 4, 4, 6, 6, 2, 5,
+	-1, 8, 4, 4, 6, 6, 2, 4, 2, 7,
+	4, 4, 7, 7, 2, 6, 2, 8, 3, 3,
+	5, 5, 2, 2, 2, 2, 4, 4, 6, 6,
+	2, 5, -1, 8, 4, 4, 6, 6, 2, 4,
+	2, 7, 4, 4, 7, 7}
 
 var Bytes = [0x100]int{
-	0, 2, -1, 2, 2, 2, 2, 2, 1, 2, 1, 2, 3, 3, 3, 3,
-	2, 2, -1, 2, 2, 2, 2, 2, 1, 3, 1, 3, 3, 3, 3, 3,
-	-2, 2, -1, 2, 2, 2, 2, 2, 1, 2, 1, 2, 3, 3, 3, 3,
-	2, 2, -1, 2, 2, 2, 2, 2, 1, 3, 1, 3, 3, 3, 3, 3,
-	-2, 2, -1, 2, 2, 2, 2, 2, 1, 2, 1, 2, -2, 3, 3, 3,
-	2, 2, -1, 2, 2, 2, 2, 2, 1, 3, 1, 3, 3, 3, 3, 3,
-	-2, 2, -1, 2, 2, 2, 2, 2, 1, 2, 1, 2, -2, 3, 3, 3,
-	2, 2, -1, 2, 2, 2, 2, 2, 1, 3, 1, 3, 3, 3, 3, 3,
-	2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 1, 2, 3, 3, 3, 3,
-	2, 2, -1, 2, 2, 2, 2, 2, 1, 3, 1, -2, 3, 3, 3, 3,
-	2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 1, 2, 3, 3, 3, 3,
-	2, 2, -1, 2, 2, 2, 2, 2, 1, 3, 1, 3, 3, 3, 3, 3,
-	2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 1, 2, 3, 3, 3, 3,
-	2, 2, -1, 2, 2, 2, 2, 2, 1, 3, 1, 3, 3, 3, 3, 3,
-	2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 1, 2, 3, 3, 3, 3,
-	2, 2, -1, 2, 2, 2, 2, 2, 1, 3, 1, 3, 3, 3, 3, 3}
+	1, 2, -1, 2, 2, 2, 2, 2, 1, 2,
+	1, 2, 3, 3, 3, 3, 2, 2, -1, 2,
+	2, 2, 2, 2, 1, 3, 1, 3, 3, 3,
+	3, 3, -13, 2, -1, 2, 2, 2, 2, 2,
+	1, 2, 1, 2, 3, 3, 3, 3, 2, 2,
+	-1, 2, 2, 2, 2, 2, 1, 3, 1, 3,
+	3, 3, 3, 3, -11, 2, -1, 2, 2, 2,
+	2, 2, 1, 2, 1, 2, -13, 3, 3, 3,
+	2, 2, -1, 2, 2, 2, 2, 2, 1, 3,
+	1, 3, 3, 3, 3, 3, -11, 2, -1, 2,
+	2, 2, 2, 2, 1, 2, 1, 2, -13, 3,
+	3, 3, 2, 2, -1, 2, 2, 2, 2, 2,
+	1, 3, 1, 3, 3, 3, 3, 3, 2, 2,
+	2, 2, 2, 2, 2, 2, 1, 2, 1, 2,
+	3, 3, 3, 3, 2, 2, -1, 2, 2, 2,
+	2, 2, 1, 3, 1, -2, 3, 3, 3, 3,
+	2, 2, 2, 2, 2, 2, 2, 2, 1, 2,
+	1, 2, 3, 3, 3, 3, 2, 2, -1, 2,
+	2, 2, 2, 2, 1, 3, 1, 3, 3, 3,
+	3, 3, 2, 2, 2, 2, 2, 2, 2, 2,
+	1, 2, 1, 2, 3, 3, 3, 3, 2, 2,
+	-1, 2, 2, 2, 2, 2, 1, 3, 1, 3,
+	3, 3, 3, 3, 2, 2, 2, 2, 2, 2,
+	2, 2, 1, 2, 1, 2, 3, 3, 3, 3,
+	2, 2, -1, 2, 2, 2, 2, 2, 1, 3,
+	1, 3, 3, 3, 3, 3}
 
 var Opcodes = [0x100]string{
-	"BRK", "ORA", "KIL", "SLO", "NOP", "ORA", "ASL", "SLO",
-	"PHP", "ORA", "ASL", "ANC", "NOP", "ORA", "ASL", "SLO",
-	"BPL", "ORA", "KIL", "SLO", "NOP", "ORA", "ASL", "SLO",
-	"CLC", "ORA", "NOP", "SLO", "NOP", "ORA", "ASL", "SLO",
-	"JSR", "AND", "KIL", "RLA", "BIT", "AND", "ROL", "RLA",
-	"PLP", "AND", "ROL", "ANC", "BIT", "AND", "ROL", "RLA",
-	"BMI", "AND", "KIL", "RLA", "NOP", "AND", "ROL", "RLA",
-	"SEC", "AND", "NOP", "RLA", "NOP", "AND", "ROL", "RLA",
-	"RTI", "EOR", "KIL", "SRE", "NOP", "EOR", "LSR", "SRE",
-	"PHA", "EOR", "LSR", "ALR", "JMP", "EOR", "LSR", "SRE",
-	"BVC", "EOR", "KIL", "SRE", "NOP", "EOR", "LSR", "SRE",
-	"CLI", "EOR", "NOP", "SRE", "NOP", "EOR", "LSR", "SRE",
-	"RTS", "ADC", "KIL", "RRA", "NOP", "ADC", "ROR", "RRA",
-	"PLA", "ADC", "ROR", "ARR", "JMP", "ADC", "ROR", "RRA",
-	"BVS", "ADC", "KIL", "RRA", "NOP", "ADC", "ROR", "RRA",
-	"SEI", "ADC", "NOP", "RRA", "NOP", "ADC", "ROR", "RRA",
-	"NOP", "STA", "NOP", "SAX", "STY", "STA", "STX", "SAX",
-	"DEY", "NOP", "TXA", "XAA", "STY", "STA", "STX", "SAX",
-	"BCC", "STA", "KIL", "AHX", "STY", "STA", "STX", "SAX",
-	"TYA", "STA", "TXS", "TAS", "SHY", "STA", "SHX", "AHX",
-	"LDY", "LDA", "LDX", "LAX", "LDY", "LDA", "LDX", "LAX",
-	"TAY", "LDA", "TAX", "LAX", "LDY", "LDA", "LDX", "LAX",
-	"BCS", "LDA", "KIL", "LAX", "LDY", "LDA", "LDX", "LAX",
-	"CLV", "LDA", "TSX", "LAS", "LDY", "LDA", "LDX", "LAX",
-	"CPY", "CMP", "NOP", "DCP", "CPY", "CMP", "DEC", "DCP",
-	"INY", "CMP", "DEX", "AXS", "CPY", "CMP", "DEC", "DCP",
-	"BNE", "CMP", "KIL", "DCP", "NOP", "CMP", "DEC", "DCP",
-	"CLD", "CMP", "NOP", "DCP", "NOP", "CMP", "DEC", "DCP",
-	"CPX", "SBC", "NOP", "ISC", "CPX", "SBC", "INC", "ISC",
-	"INX", "SBC", "NOP", "SBC", "CPX", "SBC", "INC", "ISC",
-	"BEQ", "SBC", "KIL", "ISC", "NOP", "SBC", "INC", "ISC",
-	"SED", "SBC", "NOP", "ISC", "NOP", "SBC", "INC", "ISC"}
+	"BRK", "ORA", "KIL", "SLO", "NOP", "ORA", "ASL", "SLO", "PHP", "ORA",
+	"ASL", "ANC", "NOP", "ORA", "ASL", "SLO", "BPL", "ORA", "KIL", "SLO",
+	"NOP", "ORA", "ASL", "SLO", "CLC", "ORA", "NOP", "SLO", "NOP", "ORA",
+	"ASL", "SLO", "JSR", "AND", "KIL", "RLA", "BIT", "AND", "ROL", "RLA",
+	"PLP", "AND", "ROL", "ANC", "BIT", "AND", "ROL", "RLA", "BMI", "AND",
+	"KIL", "RLA", "NOP", "AND", "ROL", "RLA", "SEC", "AND", "NOP", "RLA",
+	"NOP", "AND", "ROL", "RLA", "RTI", "EOR", "KIL", "SRE", "NOP", "EOR",
+	"LSR", "SRE", "PHA", "EOR", "LSR", "ALR", "JMP", "EOR", "LSR", "SRE",
+	"BVC", "EOR", "KIL", "SRE", "NOP", "EOR", "LSR", "SRE", "CLI", "EOR",
+	"NOP", "SRE", "NOP", "EOR", "LSR", "SRE", "RTS", "ADC", "KIL", "RRA",
+	"NOP", "ADC", "ROR", "RRA", "PLA", "ADC", "ROR", "ARR", "JMP", "ADC",
+	"ROR", "RRA", "BVS", "ADC", "KIL", "RRA", "NOP", "ADC", "ROR", "RRA",
+	"SEI", "ADC", "NOP", "RRA", "NOP", "ADC", "ROR", "RRA", "NOP", "STA",
+	"NOP", "SAX", "STY", "STA", "STX", "SAX", "DEY", "NOP", "TXA", "XAA",
+	"STY", "STA", "STX", "SAX", "BCC", "STA", "KIL", "AHX", "STY", "STA",
+	"STX", "SAX", "TYA", "STA", "TXS", "TAS", "SHY", "STA", "SHX", "AHX",
+	"LDY", "LDA", "LDX", "LAX", "LDY", "LDA", "LDX", "LAX", "TAY", "LDA",
+	"TAX", "LAX", "LDY", "LDA", "LDX", "LAX", "BCS", "LDA", "KIL", "LAX",
+	"LDY", "LDA", "LDX", "LAX", "CLV", "LDA", "TSX", "LAS", "LDY", "LDA",
+	"LDX", "LAX", "CPY", "CMP", "NOP", "DCP", "CPY", "CMP", "DEC", "DCP",
+	"INY", "CMP", "DEX", "AXS", "CPY", "CMP", "DEC", "DCP", "BNE", "CMP",
+	"KIL", "DCP", "NOP", "CMP", "DEC", "DCP", "CLD", "CMP", "NOP", "DCP",
+	"NOP", "CMP", "DEC", "DCP", "CPX", "SBC", "NOP", "ISC", "CPX", "SBC",
+	"INC", "ISC", "INX", "SBC", "NOP", "SBC", "CPX", "SBC", "INC", "ISC",
+	"BEQ", "SBC", "KIL", "ISC", "NOP", "SBC", "INC", "ISC", "SED", "SBC",
+	"NOP", "ISC", "NOP", "SBC", "INC", "ISC"}
 
 var AddressingMode = [0x100]string{
 	"", "izx", "CRASH", "izx", "zp", "zp", "zp", "zp", "", "imm",
@@ -138,6 +152,11 @@ type Cpu struct {
 	// interrupts
 	pendingInterruptRequest bool
 	interruptType           int
+
+	cycles int
+
+	// behavior
+	respectDecimalMode bool
 }
 
 func newCpu(rom *Rom, ppu *Ppu) *Cpu {
@@ -165,9 +184,8 @@ func newCpu(rom *Rom, ppu *Ppu) *Cpu {
 	cpu.ram.mirror(0x2000, 0x2007, 0x2008, 0x3FFF)
 
 	cpu.ppu = ppu
-	debug("\n cpu %p \n", &cpu)
 	ppu.cpu = &cpu
-	debug("\n ppu cpu %p \n", &(ppu.cpu))
+	cpu.respectDecimalMode = false
 	cpu.reset()
 	return &cpu
 }
@@ -180,47 +198,129 @@ func (cpu *Cpu) step() int {
 	address := uint16(0)
 	immediate := false
 	accumulator := false
+	// info("%02X  %02d ", ir, ir)
+
+	info("%04X  ", cpu.pc)
+
+	bytes := Bytes[ir]
+	if bytes <= 0 && bytes >= -10 {
+		fmt.Printf(" ir %x %d bytes %d", ir, ir, bytes)
+		fatal("invalid bytes")
+	}
+
+	if bytes <= -10 {
+		bytes = -bytes - 10
+	}
+
+	for i := 0; i < 3; i++ {
+		if bytes > 0 {
+			info("%02X ", cpu.read(cpu.pc+uint16(i)))
+			bytes--
+		} else {
+			info("   ")
+		}
+	}
+
+	if Opcodes[ir] == "NOP" && ir != 0xEA {
+		info("*")
+	} else {
+		info(" ")
+	}
+
+	info("%s ", Opcodes[ir])
+	cpu.cycles = Cycles[ir]
 
 	switch AddressingMode[ir] {
 	case "abs":
 		address = uint16(cpu.read(cpu.pc+2))<<8 | uint16(cpu.read(cpu.pc+1))
+
+		switch Opcodes[ir] {
+		case "JMP", "JSR":
+			// case "STX", "LDX", "STY", "LDY", "STA", "LDA",
+			// 	"BIT", "ORA":
+			info("$%04X                       ", address)
+		default:
+			info("$%04X = %02X                  ", address, cpu.dummyRead(address))
+
+		}
+
 	case "absx":
-		address = uint16(cpu.read(cpu.pc+2))<<8 | uint16(cpu.read(cpu.pc+1))
-		address += uint16(cpu.x)
+		tempAddress := uint16(cpu.read(cpu.pc+2))<<8 | uint16(cpu.read(cpu.pc+1))
+		address = tempAddress + uint16(cpu.x)
+		info("$%04X,X @ %04X = %02X         ", tempAddress, address, cpu.dummyRead(address))
+		switch Opcodes[ir] {
+		case "ADC", "AND", "CMP", "EOR", "LDA", "LDY", "ORA", "SBC", "NOP":
+			if tempAddress>>8 != address>>8 {
+				cpu.cycles++
+			}
+		}
+
 	case "absy":
-		address = uint16(cpu.read(cpu.pc+2))<<8 | uint16(cpu.read(cpu.pc+1))
-		address += uint16(cpu.y)
+		tempAddress := uint16(cpu.read(cpu.pc+2))<<8 | uint16(cpu.read(cpu.pc+1))
+		address = tempAddress + uint16(cpu.y)
+		info("$%04X,Y @ %04X = %02X         ", tempAddress, address, cpu.dummyRead(address))
+
+		if Opcodes[ir] != "STA" && tempAddress>>8 != address>>8 {
+			cpu.cycles++
+		}
+
 	case "zp":
 		address = uint16(cpu.read(cpu.pc + 1))
+		info("$%02X = %02X                    ", cpu.read(cpu.pc+1), cpu.dummyRead(address))
 
 	case "zpx":
-		address = uint16(cpu.read(cpu.pc+1) + cpu.x)
+		base := cpu.read(cpu.pc + 1)
+		address = uint16(base + cpu.x)
+		info("$%02X,X @ %02X = %02X             ", base, address, cpu.dummyRead(address))
 
 	case "zpy":
-		address = uint16(cpu.read(cpu.pc+1) + cpu.y)
+		base := cpu.read(cpu.pc + 1)
+		address = uint16(base + cpu.y)
+		info("$%02X,Y @ %02X = %02X             ", base, address, cpu.dummyRead(address))
 
 	case "izy":
-		base := uint16((cpu.read(cpu.pc + 1)))
-		address = uint16(cpu.read(base+1))<<8 | uint16(cpu.read(base))
-		address += uint16(cpu.y)
+		base := (cpu.read(cpu.pc + 1))
+		tempAddress := uint16(cpu.read(uint16(base+1)))<<8 | uint16(cpu.read(uint16(base)))
+		address = tempAddress + uint16(cpu.y)
+
+		if (tempAddress >> 8) != (address >> 8) {
+			cpu.cycles++
+		}
+
+		info("($%02X),Y = %04X @ %04X = %02X  ", base, tempAddress, address, cpu.dummyRead(address))
 
 	case "izx":
 		val := cpu.read(cpu.pc + 1)
-		base := uint16(val + cpu.x)
-		address = uint16(cpu.read(base+1))<<8 | uint16(cpu.read(base))
+		base := val + cpu.x
+		address = uint16(cpu.read(uint16(base+1)))<<8 | uint16(cpu.read(uint16(base)))
+		info("($%02X,X) @ %02X = %04X = %02X    ", val, base, address, cpu.dummyRead(address))
 
 	case "ind":
-		base := uint16((cpu.read(cpu.pc + 1)))
+		base := uint16(cpu.read(cpu.pc+2))<<8 | uint16(cpu.read(cpu.pc+1))
 		address = uint16(cpu.read(base+1))<<8 | uint16(cpu.read(base))
-		address = uint16(cpu.read(address+1))<<8 | uint16(cpu.read(address))
+		info("($%04X) = %04X              ", base, address)
+
+		// page boundary bug
+		if base&0x00FF == 0x00FF {
+			address = uint16(cpu.read(base&0xFF00))<<8 | uint16(cpu.read(base))
+		}
+
 	case "imm":
 		immediate = true
+		info("#$%02X                        ", cpu.read(cpu.pc+1))
 	case "acc":
 		accumulator = true
-	case "", "rel": // never mind
+		info("A                           ")
+	case "":
+		info("                            ")
+	case "rel": // never mind
+		address = uint16(int(cpu.pc)+int(int8(cpu.read(cpu.pc+1)))) + uint16(Bytes[ir])
+		info("$%04X                       ", address)
 	default:
 		fatal("unknown addressing mode not implemented %x", AddressingMode[ir])
 	}
+
+	info("A:%02X X:%02X Y:%02X P:%02X SP:%02X", cpu.ac, cpu.x, cpu.y, cpu.getStatus(), cpu.stack)
 
 	switch Opcodes[ir] {
 	case "CLD":
@@ -260,7 +360,7 @@ func (cpu *Cpu) step() int {
 		cpu.zeroNeg(cpu.x - val)
 	case "ADC":
 		val := cpu.val(immediate, address)
-		if cpu.fDecimal {
+		if cpu.respectDecimalMode && cpu.fDecimal {
 			cpu.fZero = (int(val&0xff)+int(cpu.ac&0xff)+int(cpu.carry()))&0xff == 0
 			al := int(cpu.ac&0x0F) + int(val&0x0F) + int(cpu.carry())
 			if al >= 0x0A {
@@ -290,7 +390,7 @@ func (cpu *Cpu) step() int {
 		val := cpu.val(immediate, address)
 		a := 0
 
-		if cpu.fDecimal {
+		if cpu.respectDecimalMode && cpu.fDecimal {
 			al := int(cpu.ac&0x0F) - int(val&0x0f) + (int(cpu.carry()) - 1)
 			if al < 0 {
 				al = ((al - 0x06) & 0x0F) - 0x10
@@ -310,7 +410,7 @@ func (cpu *Cpu) step() int {
 		cpu.fZero = result == 0
 		cpu.fNegative = result&0x80 != 0
 
-		if cpu.fDecimal {
+		if cpu.respectDecimalMode && cpu.fDecimal {
 			cpu.ac = uint8(a & 0xff)
 		} else {
 			cpu.ac = uint8(result)
@@ -371,35 +471,35 @@ func (cpu *Cpu) step() int {
 
 	case "BPL":
 		if !cpu.fNegative {
-			cpu.pc = uint16(int(cpu.pc) + int(int8(cpu.read(cpu.pc+1))))
+			cpu.relativeJmp()
 		}
 	case "BMI":
 		if cpu.fNegative {
-			cpu.pc = uint16(int(cpu.pc) + int(int8(cpu.read(cpu.pc+1))))
+			cpu.relativeJmp()
 		}
 	case "BNE":
 		if !cpu.fZero {
-			cpu.pc = uint16(int(cpu.pc) + int(int8(cpu.read(cpu.pc+1))))
+			cpu.relativeJmp()
 		}
 	case "BEQ":
 		if cpu.fZero {
-			cpu.pc = uint16(int(cpu.pc) + int(int8(cpu.read(cpu.pc+1))))
+			cpu.relativeJmp()
 		}
 	case "BCC":
 		if !cpu.fCarry {
-			cpu.pc = uint16(int(cpu.pc) + int(int8(cpu.read(cpu.pc+1))))
+			cpu.relativeJmp()
 		}
 	case "BCS":
 		if cpu.fCarry {
-			cpu.pc = uint16(int(cpu.pc) + int(int8(cpu.read(cpu.pc+1))))
+			cpu.relativeJmp()
 		}
 	case "BVC":
 		if !cpu.fOverflow {
-			cpu.pc = uint16(int(cpu.pc) + int(int8(cpu.read(cpu.pc+1))))
+			cpu.relativeJmp()
 		}
 	case "BVS":
 		if cpu.fOverflow {
-			cpu.pc = uint16(int(cpu.pc) + int(int8(cpu.read(cpu.pc+1))))
+			cpu.relativeJmp()
 		}
 	case "JSR":
 		cpu.push(uint8((cpu.pc + 2) >> 8))
@@ -412,7 +512,6 @@ func (cpu *Cpu) step() int {
 		cpu.pc += 1
 	case "JMP":
 		cpu.pc = address
-		// page boundary fix
 	case "STX":
 		cpu.write(address, cpu.x)
 	case "STY":
@@ -475,9 +574,12 @@ func (cpu *Cpu) step() int {
 		cpu.zeroNeg(cpu.ac)
 	case "PLP":
 		cpu.status(cpu.pull())
+		// cpu.fBreak = false
 	case "PHP":
+		// check this behaviour
 		cpu.fBreak = true
 		cpu.push(cpu.getStatus())
+		cpu.fBreak = false
 	case "PHA":
 		cpu.push(cpu.ac)
 	case "NOP":
@@ -486,6 +588,8 @@ func (cpu *Cpu) step() int {
 		lo := cpu.pull()
 		hi := cpu.pull()
 		cpu.pc = uint16(hi)<<8 | uint16(lo)
+		cpu.pc--
+		info("\npoping address %04X\n", cpu.pc)
 	case "BRK":
 		cpu.push(uint8((cpu.pc + 1) >> 8))
 		cpu.push(uint8((cpu.pc + 1) & 0xFF))
@@ -502,13 +606,22 @@ func (cpu *Cpu) step() int {
 		cpu.pc += uint16(Bytes[ir])
 	}
 
-	// fmt.Printf("opcode %s ir 0x%X mode %s cycles %d  byte %d addr 0x%X  ", Opcodes[ir], ir, AddressingMode[ir], Cycles[ir], Bytes[ir], cpu.pc)
-	// cpu.inspect()
-	return Cycles[ir]
+	//fmt.Printf("opcode %s ir 0x%X mode %s cycles %d  byte %d addr 0x%X \n ", Opcodes[ir], ir, AddressingMode[ir], Cycles[ir], Bytes[ir], address)
+	//cpu.inspect()
+	if cpu.cycles <= 0 {
+		fatal("invalid cycle %d", cpu.cycles)
+	}
+
+	return cpu.cycles
 }
 
 func (cpu *Cpu) read(address uint16) byte {
 	return cpu.ram.read(address)
+
+}
+
+func (cpu *Cpu) dummyRead(address uint16) byte {
+	return 0
 
 }
 
@@ -519,6 +632,9 @@ func (cpu *Cpu) write(address uint16, val uint8) {
 func (cpu *Cpu) reset() {
 	// OxFFFC & 0xFFFD contains the intital PC register
 	cpu.pc = (uint16(cpu.ram.read(0xFFFD)) << 8) | uint16(cpu.ram.read(0xFFFC))
+	cpu.stack = 0xFD
+	cpu.fInterruptDisable = true
+	//cpu.pc = 0xC000
 }
 
 func (cpu *Cpu) zeroNeg(val uint8) {
@@ -549,6 +665,16 @@ func (cpu *Cpu) val(immediate bool, address uint16) uint8 {
 	}
 
 	return val
+}
+
+func (cpu *Cpu) relativeJmp() {
+	cpu.cycles++
+	address := uint16(int(cpu.pc) + int(int8(cpu.read(cpu.pc+1))))
+	if (address >> 8) != (cpu.pc >> 8) {
+		// todo check
+		//cpu.cycles++
+	}
+	cpu.pc = address
 }
 
 func (cpu *Cpu) carry() uint8 {
@@ -634,16 +760,16 @@ func (cpu *Cpu) handleInterrupt() {
 
 			}
 		case NMI:
-			debug("\n nmi request test \n")
 			if cpu.ppu.nmiOnVBlank {
-				debug("\n vblank nmi \n")
+				info("vblank on nmi")
+				info("\npushing address %04X\n", cpu.pc+1)
 				cpu.push(uint8((cpu.pc + 1) >> 8))
 				cpu.push(uint8((cpu.pc + 1) & 0xFF))
 				cpu.push(cpu.getStatus())
-				cpu.pc = uint16(cpu.read(0xFFFA))<<8 | uint16(cpu.read(0xFFFB))
+				cpu.pc = uint16(cpu.read(0xFFFB))<<8 | uint16(cpu.read(0xFFFA))
 			}
 		case RESET:
-			cpu.pc = uint16(cpu.read(0xFFFA))<<8 | uint16(cpu.read(0xFFFB))
+			cpu.pc = uint16(cpu.read(0xFFFD))<<8 | uint16(cpu.read(0xFFFC))
 		}
 
 		cpu.fInterruptDisable = true

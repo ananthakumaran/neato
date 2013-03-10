@@ -63,14 +63,16 @@ func (memory *Memory) mirror(start, end, mstart, mend uint16) {
 	tempStart := uint32(mstart)
 
 	for ; tempStart+interval <= uint32(mend); tempStart += (interval + 1) {
+		tempMirrorStart := uint16(tempStart)
 		tempEnd := tempStart + interval
 
-		memory.readCallback(mstart, uint16(tempEnd), func(address uint16) byte {
-			return memory.read(start + address - mstart)
+		memory.readCallback(tempMirrorStart, uint16(tempEnd), func(address uint16) byte {
+			info("mirror read Original %04X destination %04X\n", address, start+address-tempMirrorStart)
+			return memory.read(start + address - tempMirrorStart)
 		})
 
-		memory.writeCallback(mstart, uint16(tempEnd), func(address uint16, val byte) {
-			memory.write(start+address-mstart, val)
+		memory.writeCallback(tempMirrorStart, uint16(tempEnd), func(address uint16, val byte) {
+			memory.write(start+address-tempMirrorStart, val)
 		})
 	}
 

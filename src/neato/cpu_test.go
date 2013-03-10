@@ -19,6 +19,7 @@ func newTestCpu(filename string) *Cpu {
 	cpu := Cpu{}
 	cpu.ram = newMemory(0xFFFF)
 	cpu.printer = petascii.New()
+	cpu.respectDecimalMode = true
 	cpu.loadFile(filename)
 	return &cpu
 }
@@ -103,17 +104,28 @@ func TestCpu(t *testing.T) {
 	filepath.Walk(filepath.Join(fileDir(), "suite", "bin"), func(path string, info os.FileInfo, err error) error {
 
 		if !info.IsDir() {
-			fmt.Print("\nfile - ", filepath.Base(path))
-			cpu := newTestCpu(path)
-			for {
-				if !cpu.handleTestTraps(t) {
-					break
-				}
-
-				cpu.step()
-			}
+			runTestFrom(t, path)
 		}
 
 		return nil
 	})
+}
+
+func runTestFrom(t *testing.T, path string) {
+	basename := filepath.Base(path)
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("", "test failed", basename, r)
+		}
+	}()
+
+	fmt.Print("\nfile - ", basename)
+	cpu := newTestCpu(path)
+	for {
+		if !cpu.handleTestTraps(t) {
+			break
+		}
+
+		cpu.step()
+	}
 }

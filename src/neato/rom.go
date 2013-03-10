@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 )
 
@@ -25,16 +24,16 @@ func LoadRom(filename string) *Rom {
 		fatal("can't read header")
 	}
 
-	fmt.Println(header)
+	debug("header %p\n", header)
 
 	if string(header[0:3]) != "NES" {
 		fatal("invalid file format")
 	}
 
 	rom.PrgRomCount = int(header[4])
-	fmt.Println("prg count", rom.PrgRomCount)
+	debug("prg count %d\n", rom.PrgRomCount)
 	rom.ChrRomCount = int(header[5])
-	fmt.Println("chr count", rom.ChrRomCount)
+	debug("chr count %d\n", rom.ChrRomCount)
 
 	mapper := (header[6]&0xF0)>>4 | (header[7] & 0xF0)
 
@@ -46,11 +45,11 @@ func LoadRom(filename string) *Rom {
 		mirroring = "horizontal"
 	}
 
-	fmt.Println("mirroring ", mirroring)
+	debug("mirroring %d", mirroring)
 
-	fmt.Println("mapper ", mapper)
+	debug("mapper %d", mapper)
 
-	fmt.Println("control")
+	debug("control")
 
 	rom.PrgRoms = make([][]byte, rom.PrgRomCount)
 	for i := 0; i < rom.PrgRomCount; i++ {

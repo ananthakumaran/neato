@@ -514,10 +514,12 @@ func (ppu *Ppu) spriteColorIndex(x, y int, backgroundColorIndex uint8) uint8 {
 	sprite := ppu.sprites[x]
 	if !sprite.visible {
 		return ppu.vram.read(0x3F00 + uint16(backgroundColorIndex))
-	} else if sprite.behindBackground {
+	} else if sprite.behindBackground && backgroundColorIndex%4 != 0 {
+		ppu.fSpritZeroHit = true
 		return ppu.vram.read(0x3F00 + uint16(backgroundColorIndex))
 	}
 
+	ppu.fSpritZeroHit = true
 	return ppu.vram.read(0x3F10 + uint16(sprite.paletteIndex))
 }
 
@@ -536,7 +538,7 @@ func (ppu *Ppu) oamGetY(index uint8) byte {
 
 func (ppu *Ppu) oamGetTile(index uint8) uint8 {
 	data := uint8(ppu.oamRam.read(uint16(4*index) + 1))
-	if ppu.spriteSize == 16 {
+	if ppu.spriteSize == 8 {
 		return data
 	}
 	// fixme
@@ -552,12 +554,12 @@ func (ppu *Ppu) oamGetX(index uint8) byte {
 }
 
 func (ppu *Ppu) calculateSprites(screenY uint8) {
-	// internals
 	ppu.sprites = make([]Sprite, SCREEN_WIDTH)
+
 	if ppu.displaySprite {
 		for i := uint8(0); i < 64; i++ {
 			if ppu.spriteSize == 8 {
-				spriteTopY := uint8(ppu.oamGetY(i))
+				spriteTopY := uint8(ppu.oamGetY(i)) - 1
 				inRange := false
 				yOffset := uint8(0)
 
@@ -577,13 +579,23 @@ func (ppu *Ppu) calculateSprites(screenY uint8) {
 						patternTileNumber++
 					}
 
-					// todo flipping
 					attributeByte := ppu.oamGetAttribute(i)
+					flippedHorizontal := (attributeByte)&0x40 == 0x40
+					flippedVertical := (attributeByte>>7)&0x80 == 0x80
 					attributeColorIndex := (attributeByte << 6) >> 4
 
+					if flippedVertical {
+						yOffset = 8 - yOffset - 1
+					}
+
 					for j := uint8(0); j < 8; j++ {
+						x := j
+						if flippedHorizontal {
+							x = 8 - x - 1
+						}
+
 						if !ppu.sprites[spriteLetfX+j].visible {
-							patternColorIndex := ppu.patternColorIndex(int(j), int(yOffset), ppu.spritePatternTableAddress, patternTileNumber)
+							patternColorIndex := ppu.patternColorIndex(int(x), int(yOffset), ppu.spritePatternTableAddress, patternTileNumber)
 							if patternColorIndex != 0 {
 								ppu.sprites[spriteLetfX+j].visible = true
 								ppu.sprites[spriteLetfX+j].paletteIndex = patternColorIndex + attributeColorIndex
@@ -593,6 +605,8 @@ func (ppu *Ppu) calculateSprites(screenY uint8) {
 
 					}
 				}
+			} else {
+				fatal("8x16 sprite")
 			}
 		}
 	}

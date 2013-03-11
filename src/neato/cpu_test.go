@@ -101,7 +101,7 @@ func (cpu *Cpu) handleTestTraps(t *testing.T) bool {
 }
 
 func TestCpu(t *testing.T) {
-	filepath.Walk(filepath.Join(fileDir(), "suite", "bin"), func(path string, info os.FileInfo, err error) error {
+	filepath.Walk(filepath.Join(fileDir(), "cpu_tests", "bin"), func(path string, info os.FileInfo, err error) error {
 
 		if !info.IsDir() {
 			runTestFrom(t, path)

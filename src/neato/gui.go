@@ -17,13 +17,13 @@ func newGui() *Gui {
 	gui.pixels = make([]byte, SCREEN_WIDTH*SCREEN_HEIGHT*3)
 
 	if err := glfw.Init(); err != nil {
-		fatal("can't init glfw %v", err)
+		fatal("can't init glfw", err)
 	}
 
 	glfw.OpenWindowHint(glfw.WindowNoResize, 1)
 
 	if err := glfw.OpenWindow(SCREEN_WIDTH*3, SCREEN_HEIGHT*3, 8, 8, 8, 0, 0, 0, glfw.Windowed); err != nil {
-		fatal("can't open window %v", err)
+		fatal("can't open window", err)
 	}
 
 	glfw.SetSwapInterval(1)

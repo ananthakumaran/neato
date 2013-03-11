@@ -580,8 +580,8 @@ func (ppu *Ppu) calculateSprites(screenY uint8) {
 					}
 
 					attributeByte := ppu.oamGetAttribute(i)
-					flippedHorizontal := (attributeByte)&0x40 == 0x40
-					flippedVertical := (attributeByte>>7)&0x80 == 0x80
+					flippedHorizontal := (attributeByte>>6)&1 == 1
+					flippedVertical := (attributeByte>>7)&1 == 1
 					attributeColorIndex := (attributeByte << 6) >> 4
 
 					if flippedVertical {

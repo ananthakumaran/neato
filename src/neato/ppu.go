@@ -12,6 +12,11 @@ const (
 	SCREEN_HEIGHT = 240
 )
 
+const (
+	VERTICAL_MIRRORING   = 1
+	HORIZONTAL_MIRRORING = 2
+)
+
 var colorPalette = [][]byte{
 	{0x75, 0x75, 0x75},
 	{0x27, 0x1B, 0x8F},
@@ -82,6 +87,7 @@ type Ppu struct {
 	cpu  *Cpu
 	rom  *Rom
 	vram *Memory
+	gui  *Gui
 
 	// CRTL
 	ctrlRegister                 uint8
@@ -123,7 +129,13 @@ type Ppu struct {
 	scanline             int
 	currentScanlineCycle int
 
-	gui *Gui
+	sprites []Sprite
+}
+
+type Sprite struct {
+	visible          bool
+	behindBackground bool
+	paletteIndex     uint8
 }
 
 func newPpu(rom *Rom) *Ppu {
@@ -139,9 +151,19 @@ func newPpu(rom *Rom) *Ppu {
 	ppu.vram.mirror(0x2000, 0x2EFF, 0x3000, 0x3EFF)
 	ppu.vram.mirror(0x3F00, 0x3F1F, 0x3F20, 0x3FFF)
 	ppu.vram.mirror(0x0000, 0x3FFF, 0x4000, 0xFFFF)
+
+	switch rom.mirroring {
+	case VERTICAL_MIRRORING:
+		ppu.vram.mirror(0x2000, 0x23FF, 0x2800, 0x2BFF)
+		ppu.vram.mirror(0x2400, 0x27FF, 0x2C00, 0x2FFF)
+	case HORIZONTAL_MIRRORING:
+		ppu.vram.mirror(0x2000, 0x23FF, 0x2400, 0x27FF)
+		ppu.vram.mirror(0x2800, 0x2BFF, 0x2C00, 0x2FFF)
+	}
+
 	ppu.oamRam = newMemory(0xFF)
-	//ppu.vBlank(true)
 	ppu.reset()
+
 	return &ppu
 }
 
@@ -357,35 +379,35 @@ func (ppu *Ppu) controlRegister2(val uint8) {
 }
 
 func (ppu *Ppu) drawScreen() {
-	debug("draw screen\n")
-	debug("name table addres %x \n", ppu.basenameTableAddress)
+	// debug("draw screen\n")
+	// debug("name table addres %x \n", ppu.basenameTableAddress)
 
-	debug("\nsprite table \n")
-	for i := 0x0; i <= 0x0FFF; {
-		for j := 0; j < 32; j++ {
-			debug("%02X ", ppu.vram.read(uint16(i)))
-			i++
-		}
-		debug("\n")
-	}
+	// debug("\nsprite table \n")
+	// for i := 0x0; i <= 0x0FFF; {
+	// 	for j := 0; j < 32; j++ {
+	// 		debug("%02X ", ppu.vram.read(uint16(i)))
+	// 		i++
+	// 	}
+	// 	debug("\n")
+	// }
 
-	debug("background table \n")
-	for i := 0x1000; i <= 0x1FFF; {
-		for j := 0; j < 32; j++ {
-			debug("%02X ", ppu.vram.read(uint16(i)))
-			i++
-		}
-		debug("\n")
-	}
+	// debug("background table \n")
+	// for i := 0x1000; i <= 0x1FFF; {
+	// 	for j := 0; j < 32; j++ {
+	// 		debug("%02X ", ppu.vram.read(uint16(i)))
+	// 		i++
+	// 	}
+	// 	debug("\n")
+	// }
 
-	debug("name and table attributes \n")
-	for i := 0x2000; i <= 0x2FFF; {
-		for j := 0; j < 32; j++ {
-			debug("%02X ", ppu.vram.read(uint16(i)))
-			i++
-		}
-		debug("\n")
-	}
+	// debug("name and table attributes \n")
+	// for i := 0x2000; i <= 0x2FFF; {
+	// 	for j := 0; j < 32; j++ {
+	// 		debug("%02X ", ppu.vram.read(uint16(i)))
+	// 		i++
+	// 	}
+	// 	debug("\n")
+	// }
 
 	debug("ooam\n")
 	for i := 0; i < 255; {
@@ -398,27 +420,38 @@ func (ppu *Ppu) drawScreen() {
 }
 
 func (ppu *Ppu) startVblank() {
-	//	ppu.drawScreen()
+	ppu.drawScreen()
 	ppu.fVerticalBlank = true
 	ppu.cpu.Interrupt(NMI)
 }
 
-func (ppu *Ppu) patternColor(x, y int) uint8 {
-	nametableOffset := uint16((x / HORIZONTAL_PIXELS_PER_TILE) +
-		((y / VERTICAL_PIXES_PER_TILE) * TILES_PER_ROW))
+func (ppu *Ppu) PatternTableAddress(x, y int, baseAddress uint16, tileNumber uint8) uint16 {
+	return baseAddress +
+		uint16((int(tileNumber)*PATTERN_BYTES_PER_TILE)+
+			(y%VERTICAL_PIXES_PER_TILE))
+}
 
-	patternTileNumber := ppu.vram.read(ppu.basenameTableAddress + nametableOffset)
-
-	patternAddress := ppu.backgroundPatterTableAddress + uint16((int(patternTileNumber)*PATTERN_BYTES_PER_TILE)+(y%VERTICAL_PIXES_PER_TILE))
-
+func (ppu *Ppu) patternColorIndex(x, y int, baseAddress uint16, tileNumber uint8) uint8 {
+	patternAddress := ppu.PatternTableAddress(x, y, baseAddress, tileNumber)
 	pattern1 := ppu.vram.read(patternAddress)
 	pattern2 := ppu.vram.read(patternAddress + 8)
 
 	bitOffset := uint8((x % 8))
 	pattern1 = (pattern1 << bitOffset) >> 7
-	pattern2 = (((pattern2 << bitOffset) >> 7) << 1)
-	patternIndex := pattern1 + pattern2
-	return patternIndex
+	pattern2 = ((pattern2 << bitOffset) >> 7)
+	return (pattern2 << 1) + pattern1
+}
+
+func (ppu *Ppu) nameTablePattern(x, y int) uint8 {
+	nametableOffset := uint16((x / HORIZONTAL_PIXELS_PER_TILE) +
+		((y / VERTICAL_PIXES_PER_TILE) * TILES_PER_ROW))
+	return ppu.vram.read(ppu.basenameTableAddress + nametableOffset)
+}
+
+func (ppu *Ppu) backgroundPatternColor(x, y int) uint8 {
+	tileNumber := ppu.nameTablePattern(x, y)
+	return ppu.patternColorIndex(x, y, ppu.backgroundPatterTableAddress, tileNumber)
+
 }
 
 var attributeTableLookup = [][]uint8{
@@ -427,7 +460,7 @@ var attributeTableLookup = [][]uint8{
 	{0x8, 0x9, 0xC, 0xD},
 	{0xA, 0xB, 0xE, 0xF}}
 
-func (ppu *Ppu) attributeColor(x, y int) uint8 {
+func (ppu *Ppu) backgroundAttributeColor(x, y int) uint8 {
 	tileNumber := uint16((x / HORIZONTAL_PIXELS_PER_TILE) +
 		((y / VERTICAL_PIXES_PER_TILE) * TILES_PER_ROW))
 
@@ -458,28 +491,111 @@ func (ppu *Ppu) attributeColor(x, y int) uint8 {
 	return (attributeColorIndex >> 6)
 }
 
-func (ppu *Ppu) renderPixel() {
-	//debug("basetable %04X\n", ppu.basenameTableAddress)
-	x := ppu.currentScanlineCycle
-	y := ppu.scanline
-
-	patternIndex := ppu.patternColor(x, y)
-	attributeIndex := ppu.attributeColor(x, y)
+func (ppu *Ppu) backgroundColorIndex(x, y int) uint8 {
 
 	backgroundColourIndex := uint8(0)
 
-	if patternIndex != 0 {
-		backgroundColourIndex = patternIndex + (attributeIndex << 2)
-	}
-
 	if !ppu.displayBackground {
 		backgroundColourIndex = 0
+	} else {
+		patternIndex := ppu.backgroundPatternColor(x, y)
+		attributeIndex := ppu.backgroundAttributeColor(x, y)
+		if patternIndex != 0 {
+			backgroundColourIndex = patternIndex + (attributeIndex << 2)
+		}
 	}
 
-	colorIndex := ppu.vram.read(0x3F00 + uint16(backgroundColourIndex))
+	return backgroundColourIndex
+}
+
+func (ppu *Ppu) spriteColorIndex(x, y int, backgroundColorIndex uint8) uint8 {
+	//return ppu.vram.read(0x3F00 + uint16(backgroundColorIndex))
+	// sprite collision
+	sprite := ppu.sprites[x]
+	if !sprite.visible {
+		return ppu.vram.read(0x3F00 + uint16(backgroundColorIndex))
+	} else if sprite.behindBackground {
+		return ppu.vram.read(0x3F00 + uint16(backgroundColorIndex))
+	}
+
+	return ppu.vram.read(0x3F10 + uint16(sprite.paletteIndex))
+}
+
+func (ppu *Ppu) renderPixel() {
+	x := ppu.currentScanlineCycle
+	y := ppu.scanline
+
+	colorIndex := ppu.spriteColorIndex(x, y, ppu.backgroundColorIndex(x, y))
 	color := colorPalette[colorIndex]
 	ppu.gui.DrawPixel(x, y, color[0], color[1], color[2])
-	//debug("x %d y %x rgb # %x%x%x\n", x, y, color[0], color[1], color[2])
+}
+
+func (ppu *Ppu) oamGetY(index uint8) byte {
+	return ppu.oamRam.read(uint16(4 * index))
+}
+
+func (ppu *Ppu) oamGetTile(index uint8) uint8 {
+	data := uint8(ppu.oamRam.read(uint16(4*index) + 1))
+	if ppu.spriteSize == 16 {
+		return data
+	}
+	// fixme
+	return (data >> 1) << 1
+}
+
+func (ppu *Ppu) oamGetAttribute(index uint8) byte {
+	return ppu.oamRam.read(uint16(4*index) + 2)
+}
+
+func (ppu *Ppu) oamGetX(index uint8) byte {
+	return ppu.oamRam.read(uint16(4*index) + 3)
+}
+
+func (ppu *Ppu) calculateSprites(screenY uint8) {
+	// internals
+	ppu.sprites = make([]Sprite, SCREEN_WIDTH)
+	if ppu.displaySprite {
+		for i := uint8(0); i < 64; i++ {
+			if ppu.spriteSize == 8 {
+				spriteTopY := uint8(ppu.oamGetY(i))
+				inRange := false
+				yOffset := uint8(0)
+
+				if screenY >= spriteTopY {
+					yOffset = screenY - spriteTopY
+					if yOffset < 8 {
+						inRange = true
+					}
+				}
+
+				if inRange {
+					spriteLetfX := ppu.oamGetX(i)
+					patternTileNumber := ppu.oamGetTile(i)
+
+					if yOffset >= 8 {
+						yOffset -= 8
+						patternTileNumber++
+					}
+
+					// todo flipping
+					attributeByte := ppu.oamGetAttribute(i)
+					attributeColorIndex := (attributeByte << 6) >> 4
+
+					for j := uint8(0); j < 8; j++ {
+						if !ppu.sprites[spriteLetfX+j].visible {
+							patternColorIndex := ppu.patternColorIndex(int(j), int(yOffset), ppu.spritePatternTableAddress, patternTileNumber)
+							if patternColorIndex != 0 {
+								ppu.sprites[spriteLetfX+j].visible = true
+								ppu.sprites[spriteLetfX+j].paletteIndex = patternColorIndex + attributeColorIndex
+								ppu.sprites[spriteLetfX+j].behindBackground = attributeByte>>5&1 == 1
+							}
+						}
+
+					}
+				}
+			}
+		}
+	}
 }
 
 func (ppu *Ppu) step() {
@@ -505,6 +621,11 @@ func (ppu *Ppu) step() {
 	}
 
 	if ppu.scanline >= 0 && ppu.scanline < SCREEN_HEIGHT {
+
+		if ppu.currentScanlineCycle == 0 {
+			ppu.calculateSprites(uint8(ppu.scanline))
+		}
+
 		if ppu.currentScanlineCycle >= 0 && ppu.currentScanlineCycle < SCREEN_WIDTH {
 			ppu.renderPixel()
 		}

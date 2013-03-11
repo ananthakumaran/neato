@@ -9,6 +9,7 @@ type Rom struct {
 	ChrRomCount int
 	PrgRoms     [][]byte
 	ChrRoms     [][]byte
+	mirroring   int
 }
 
 func LoadRom(filename string) *Rom {
@@ -37,15 +38,13 @@ func LoadRom(filename string) *Rom {
 
 	mapper := (header[6]&0xF0)>>4 | (header[7] & 0xF0)
 
-	mirroring := ""
-
 	if header[6]&0x01 == 1 {
-		mirroring = "vertical"
+		rom.mirroring = VERTICAL_MIRRORING
+		debug("mirroring vertical")
 	} else {
-		mirroring = "horizontal"
+		rom.mirroring = HORIZONTAL_MIRRORING
+		debug("mirroring horizontal")
 	}
-
-	debug("mirroring %d", mirroring)
 
 	debug("mapper %d", mapper)
 

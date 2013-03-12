@@ -197,9 +197,6 @@ func (ppu *Ppu) read(address uint16) byte {
 		address := ppu.address
 		ppu.address += uint16(ppu.incrementBy)
 		return ppu.vram.read(address)
-		// joystick
-	case 0x4016, 0x4017:
-		return 0
 	default:
 		info("READ unimplemented %X", address)
 		//fatal("READ unimplemented %X", address)
@@ -255,11 +252,10 @@ func (ppu *Ppu) write(address uint16, val byte) {
 			ppu.oamRam.write(i, ppu.cpu.ram.read(base+uint16(i)))
 		}
 
-	case 0x4015, 0x4017:
 	case 0x4000, 0x4001, 0x4002, 0x4003, 0x4004,
 		0x4005, 0x4006, 0x4007, 0x4008, 0x4009, 0x400A,
 		0x400B, 0x400C, 0x400D, 0x400E, 0x400F, 0x4010,
-		0x4011, 0x4012, 0x4013:
+		0x4011, 0x4012, 0x4013, 0x4015:
 		info("sound beep")
 	default:
 		info("write unimplemented %x %x", address, val)

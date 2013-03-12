@@ -124,8 +124,9 @@ var AddressingMode = [0x100]string{
 	"", "absy", "absx", "absx", "absx"}
 
 type Cpu struct {
-	rom *Rom
-	ppu *Ppu
+	rom      *Rom
+	ppu      *Ppu
+	joystick *Joystick
 
 	ram *Memory
 
@@ -162,6 +163,7 @@ type Cpu struct {
 func newCpu(rom *Rom, ppu *Ppu) *Cpu {
 	cpu := Cpu{}
 	cpu.rom = rom
+	cpu.joystick = newJoystick()
 	cpu.ram = newMemory(0xFFFF)
 	cpu.ram.copy(0x8000, 0xC000, rom.PrgRoms[0])
 
@@ -177,8 +179,11 @@ func newCpu(rom *Rom, ppu *Ppu) *Cpu {
 	// IO registers
 	cpu.ram.readCallback(0x2000, 0x2007, func(address uint16) byte { return cpu.ppu.read(address) })
 	cpu.ram.writeCallback(0x2000, 0x2007, func(address uint16, val byte) { cpu.ppu.write(address, val) })
-	cpu.ram.readCallback(0x4000, 0x401F, func(address uint16) byte { return cpu.ppu.read(address) })
-	cpu.ram.writeCallback(0x4000, 0x401F, func(address uint16, val byte) { cpu.ppu.write(address, val) })
+	cpu.ram.readCallback(0x4014, 0x4014, func(address uint16) byte { return cpu.ppu.read(address) })
+	cpu.ram.writeCallback(0x4014, 0x4014, func(address uint16, val byte) { cpu.ppu.write(address, val) })
+
+	cpu.ram.readCallback(0x4016, 0x4017, func(address uint16) byte { return cpu.joystick.read(address) })
+	cpu.ram.writeCallback(0x4016, 0x4017, func(address uint16, val byte) { cpu.joystick.write(address, val) })
 
 	cpu.ram.mirror(0x0000, 0x07FF, 0x0800, 0x1FFF)
 	cpu.ram.mirror(0x2000, 0x2007, 0x2008, 0x3FFF)
@@ -200,34 +205,34 @@ func (cpu *Cpu) step() int {
 	accumulator := false
 	// info("%02X  %02d ", ir, ir)
 
-	info("%04X  ", cpu.pc)
+	// info("%04X  ", cpu.pc)
 
-	bytes := Bytes[ir]
-	if bytes <= 0 && bytes >= -10 {
-		fmt.Printf(" ir %x %d bytes %d", ir, ir, bytes)
-		fatal("invalid bytes")
-	}
+	// bytes := Bytes[ir]
+	// if bytes <= 0 && bytes >= -10 {
+	// 	fmt.Printf(" ir %x %d bytes %d", ir, ir, bytes)
+	// 	fatal("invalid bytes")
+	// }
 
-	if bytes <= -10 {
-		bytes = -bytes - 10
-	}
+	// if bytes <= -10 {
+	// 	bytes = -bytes - 10
+	// }
 
-	for i := 0; i < 3; i++ {
-		if bytes > 0 {
-			info("%02X ", cpu.read(cpu.pc+uint16(i)))
-			bytes--
-		} else {
-			info("   ")
-		}
-	}
+	// for i := 0; i < 3; i++ {
+	// 	if bytes > 0 {
+	// 		info("%02X ", cpu.read(cpu.pc+uint16(i)))
+	// 		bytes--
+	// 	} else {
+	// 		info("   ")
+	// 	}
+	// }
 
-	if Opcodes[ir] == "NOP" && ir != 0xEA {
-		info("*")
-	} else {
-		info(" ")
-	}
+	// if Opcodes[ir] == "NOP" && ir != 0xEA {
+	// 	info("*")
+	// } else {
+	// 	info(" ")
+	// }
 
-	info("%s ", Opcodes[ir])
+	// info("%s ", Opcodes[ir])
 	cpu.cycles = Cycles[ir]
 
 	switch AddressingMode[ir] {
@@ -236,18 +241,16 @@ func (cpu *Cpu) step() int {
 
 		switch Opcodes[ir] {
 		case "JMP", "JSR":
-			// case "STX", "LDX", "STY", "LDY", "STA", "LDA",
-			// 	"BIT", "ORA":
-			info("$%04X                       ", address)
+			// info("$%04X                       ", address)
 		default:
-			info("$%04X = %02X                  ", address, cpu.dummyRead(address))
+			// info("$%04X = %02X                  ", address, cpu.dummyRead(address))
 
 		}
 
 	case "absx":
 		tempAddress := uint16(cpu.read(cpu.pc+2))<<8 | uint16(cpu.read(cpu.pc+1))
 		address = tempAddress + uint16(cpu.x)
-		info("$%04X,X @ %04X = %02X         ", tempAddress, address, cpu.dummyRead(address))
+		// info("$%04X,X @ %04X = %02X         ", tempAddress, address, cpu.dummyRead(address))
 		switch Opcodes[ir] {
 		case "ADC", "AND", "CMP", "EOR", "LDA", "LDY", "ORA", "SBC", "NOP":
 			if tempAddress>>8 != address>>8 {
@@ -258,7 +261,7 @@ func (cpu *Cpu) step() int {
 	case "absy":
 		tempAddress := uint16(cpu.read(cpu.pc+2))<<8 | uint16(cpu.read(cpu.pc+1))
 		address = tempAddress + uint16(cpu.y)
-		info("$%04X,Y @ %04X = %02X         ", tempAddress, address, cpu.dummyRead(address))
+		// info("$%04X,Y @ %04X = %02X         ", tempAddress, address, cpu.dummyRead(address))
 
 		if Opcodes[ir] != "STA" && tempAddress>>8 != address>>8 {
 			cpu.cycles++
@@ -266,17 +269,17 @@ func (cpu *Cpu) step() int {
 
 	case "zp":
 		address = uint16(cpu.read(cpu.pc + 1))
-		info("$%02X = %02X                    ", cpu.read(cpu.pc+1), cpu.dummyRead(address))
+		// info("$%02X = %02X                    ", cpu.read(cpu.pc+1), cpu.dummyRead(address))
 
 	case "zpx":
 		base := cpu.read(cpu.pc + 1)
 		address = uint16(base + cpu.x)
-		info("$%02X,X @ %02X = %02X             ", base, address, cpu.dummyRead(address))
+		// info("$%02X,X @ %02X = %02X             ", base, address, cpu.dummyRead(address))
 
 	case "zpy":
 		base := cpu.read(cpu.pc + 1)
 		address = uint16(base + cpu.y)
-		info("$%02X,Y @ %02X = %02X             ", base, address, cpu.dummyRead(address))
+		// info("$%02X,Y @ %02X = %02X             ", base, address, cpu.dummyRead(address))
 
 	case "izy":
 		base := (cpu.read(cpu.pc + 1))
@@ -287,18 +290,18 @@ func (cpu *Cpu) step() int {
 			cpu.cycles++
 		}
 
-		info("($%02X),Y = %04X @ %04X = %02X  ", base, tempAddress, address, cpu.dummyRead(address))
+		// info("($%02X),Y = %04X @ %04X = %02X  ", base, tempAddress, address, cpu.dummyRead(address))
 
 	case "izx":
 		val := cpu.read(cpu.pc + 1)
 		base := val + cpu.x
 		address = uint16(cpu.read(uint16(base+1)))<<8 | uint16(cpu.read(uint16(base)))
-		info("($%02X,X) @ %02X = %04X = %02X    ", val, base, address, cpu.dummyRead(address))
+		// info("($%02X,X) @ %02X = %04X = %02X    ", val, base, address, cpu.dummyRead(address))
 
 	case "ind":
 		base := uint16(cpu.read(cpu.pc+2))<<8 | uint16(cpu.read(cpu.pc+1))
 		address = uint16(cpu.read(base+1))<<8 | uint16(cpu.read(base))
-		info("($%04X) = %04X              ", base, address)
+		// info("($%04X) = %04X              ", base, address)
 
 		// page boundary bug
 		if base&0x00FF == 0x00FF {
@@ -307,20 +310,20 @@ func (cpu *Cpu) step() int {
 
 	case "imm":
 		immediate = true
-		info("#$%02X                        ", cpu.read(cpu.pc+1))
+		// info("#$%02X                        ", cpu.read(cpu.pc+1))
 	case "acc":
 		accumulator = true
-		info("A                           ")
+		// info("A                           ")
 	case "":
-		info("                            ")
+		// info("                            ")
 	case "rel": // never mind
 		address = uint16(int(cpu.pc)+int(int8(cpu.read(cpu.pc+1)))) + uint16(Bytes[ir])
-		info("$%04X                       ", address)
+		// info("$%04X                       ", address)
 	default:
 		fatal("unknown addressing mode not implemented %x", AddressingMode[ir])
 	}
 
-	info("A:%02X X:%02X Y:%02X P:%02X SP:%02X", cpu.ac, cpu.x, cpu.y, cpu.getStatus(), cpu.stack)
+	// info("A:%02X X:%02X Y:%02X P:%02X SP:%02X", cpu.ac, cpu.x, cpu.y, cpu.getStatus(), cpu.stack)
 
 	switch Opcodes[ir] {
 	case "CLD":
@@ -588,7 +591,7 @@ func (cpu *Cpu) step() int {
 		lo := cpu.pull()
 		hi := cpu.pull()
 		cpu.pc = uint16(hi)<<8 | uint16(lo)
-		info("\npoping address %04X\n", cpu.pc)
+		// info("\npoping address %04X\n", cpu.pc)
 	case "BRK":
 		cpu.push(uint8((cpu.pc + 1) >> 8))
 		cpu.push(uint8((cpu.pc + 1) & 0xFF))
@@ -760,8 +763,8 @@ func (cpu *Cpu) handleInterrupt() {
 			}
 		case NMI:
 			if cpu.ppu.nmiOnVBlank {
-				info("vblank on nmi")
-				info("\npushing address %04X\n", cpu.pc+1)
+				// info("vblank on nmi")
+				// info("\npushing address %04X\n", cpu.pc+1)
 				cpu.push(uint8((cpu.pc) >> 8))
 				cpu.push(uint8((cpu.pc) & 0xFF))
 				cpu.push(cpu.getStatus())

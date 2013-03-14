@@ -255,8 +255,11 @@ func (ppu *Ppu) write(address uint16, val byte) {
 	case 0x4014:
 		debug("\n OAM DMC \n")
 		base := uint16(val) * 0x100
-		for i := ppu.oamAddress; i <= 255; i++ {
-			ppu.oamRam.write(i, ppu.cpu.ram.read(base+uint16(i)))
+		addr := uint8(ppu.oamAddress)
+
+		for i := 0; i <= 255; i++ {
+			ppu.oamRam.write(uint16(addr), ppu.cpu.ram.read(base+uint16(i)))
+			addr++
 		}
 
 	case 0x4000, 0x4001, 0x4002, 0x4003, 0x4004,

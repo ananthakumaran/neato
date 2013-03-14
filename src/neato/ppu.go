@@ -131,6 +131,7 @@ type Ppu struct {
 	currentScanlineCycle int
 
 	sprites []Sprite
+	vramReadBuffer uint8
 }
 
 type Sprite struct {
@@ -200,10 +201,16 @@ func (ppu *Ppu) read(address uint16) byte {
 		debug("status %b\n", status)
 		return status
 	case 0x2004:
+		return ppu.oamRam.read(uint16(ppu.oamAddress))
 	case 0x2007:
 		address := ppu.address
 		ppu.address += uint16(ppu.incrementBy)
-		return ppu.vram.read(address)
+		buffered := ppu.vramReadBuffer
+		ppu.vramReadBuffer = ppu.vram.read(address)
+		if address >= 0x3F00 && address <= 0x3FFF {
+			return ppu.vram.read(address)
+		}
+		return buffered
 	default:
 		info("READ unimplemented %X", address)
 		//fatal("READ unimplemented %X", address)

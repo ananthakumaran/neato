@@ -40,7 +40,7 @@ var Cycles = [0x100]int{
 	2, 7, 4, 4, 7, 7}
 
 var Bytes = [0x100]int{
-	1, 2, -1, 2, 2, 2, 2, 2, 1, 2,
+	-12, 2, -1, 2, 2, 2, 2, 2, 1, 2,
 	1, 2, 3, 3, 3, 3, 2, 2, -1, 2,
 	2, 2, 2, 2, 1, 3, 1, 3, 3, 3,
 	3, 3, -13, 2, -1, 2, 2, 2, 2, 2,
@@ -593,8 +593,8 @@ func (cpu *Cpu) step() int {
 		cpu.pc = uint16(hi)<<8 | uint16(lo)
 		// info("\npoping address %04X\n", cpu.pc)
 	case "BRK":
-		cpu.push(uint8((cpu.pc + 1) >> 8))
-		cpu.push(uint8((cpu.pc + 1) & 0xFF))
+		cpu.push(uint8((cpu.pc + 2) >> 8))
+		cpu.push(uint8((cpu.pc + 2) & 0xFF))
 		cpu.push(cpu.getStatus())
 		cpu.pc = uint16(cpu.read(0xFFFF))<<8 | uint16(cpu.read(0xFFFE))
 		cpu.fBreak = true

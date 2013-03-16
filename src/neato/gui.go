@@ -3,10 +3,7 @@ package main
 import (
 	"github.com/go-gl/gl"
 	"github.com/go-gl/glfw"
-	"os"
 )
-
-var enableGui = os.Getenv("GUI") == "t"
 
 type Gui struct {
 	pixels []byte
@@ -37,10 +34,6 @@ func newGui() *Gui {
 }
 
 func (gui *Gui) DrawPixel(x, y int, red, green, blue byte) {
-	if !enableGui {
-		return
-	}
-
 	// opengl starts to draw from the lower left
 	base := (SCREEN_HEIGHT - y - 1) * SCREEN_WIDTH * 3
 	base += x * 3
@@ -52,10 +45,6 @@ func (gui *Gui) DrawPixel(x, y int, red, green, blue byte) {
 }
 
 func (gui *Gui) RefreshScreen() {
-	if !enableGui {
-		return
-	}
-
 	gl.PixelZoom(SCALE, SCALE)
 	gl.DrawPixels(SCREEN_WIDTH, SCREEN_HEIGHT, gl.RGB, gl.UNSIGNED_BYTE, gui.pixels)
 	glfw.SwapBuffers()

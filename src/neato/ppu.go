@@ -120,7 +120,8 @@ type Ppu struct {
 	address    uint16
 
 	scrollAddrStatus int
-	scrollAddress    uint16
+	scrollX          uint8
+	scrollY          uint8
 
 	// oram
 	oamAddress uint16
@@ -129,9 +130,13 @@ type Ppu struct {
 	// bookeeping
 	scanline             int
 	currentScanlineCycle int
+	sprites              []Sprite
 
-	sprites []Sprite
 	vramReadBuffer uint8
+
+	x          uint16
+	y          uint16
+	scrollBase uint16
 }
 
 type Sprite struct {
@@ -146,8 +151,12 @@ func newPpu(rom *Rom) *Ppu {
 	ppu.rom = rom
 	ppu.vram = newMemory(0xFFFF)
 
-	if rom.ChrRomCount == 1 {
+	switch rom.ChrRomCount {
+	case 0: // no chr rom
+	case 1:
 		ppu.vram.copy(0x0000, 0x2000, rom.ChrRoms[0])
+	default:
+		fatal("unknown chrom count", rom.ChrRomCount)
 	}
 
 	ppu.vram.mirror(0x2000, 0x2EFF, 0x3000, 0x3EFF)
@@ -198,7 +207,6 @@ func (ppu *Ppu) read(address uint16) byte {
 		status := ppu.getStatus()
 		ppu.fVerticalBlank = false
 		ppu.resetLatch()
-		debug("status %b\n", status)
 		return status
 	case 0x2004:
 		return ppu.oamRam.read(uint16(ppu.oamAddress))
@@ -239,10 +247,10 @@ func (ppu *Ppu) write(address uint16, val byte) {
 		debug("W %X %X \n", address, val)
 		switch ppu.scrollAddrStatus {
 		case 0:
-			ppu.scrollAddress = (8 << uint16(val)) | ppu.scrollAddress&0x00FF
+			ppu.scrollX = val
 			ppu.scrollAddrStatus++
 		case 1:
-			ppu.scrollAddress = uint16(val) | ppu.scrollAddress&0xFF00
+			ppu.scrollY = val
 			ppu.scrollAddrStatus = 0
 		}
 	case 0x2006:
@@ -317,7 +325,7 @@ func (ppu *Ppu) getStatus() uint8 {
 }
 
 // 7 6 5 4 3 2 1 0
-// | | | | | | --|  name table address 
+// | | | | | | --|  name table address
 // | | | | | | ---  0 -> $2000, 1 -> $2400, 2 -> $2800, 3 -> $2C00
 // | | | | | -- amount to increment 0 -> 1, 1 -> 32
 // | | | | -- sprite pattern table 0 -> $0000, 1 -> $1000
@@ -392,49 +400,7 @@ func (ppu *Ppu) controlRegister2(val uint8) {
 	ppu.colorIntensity = val >> 5
 }
 
-func (ppu *Ppu) drawScreen() {
-	// debug("draw screen\n")
-	// debug("name table addres %x \n", ppu.basenameTableAddress)
-
-	// debug("\nsprite table \n")
-	// for i := 0x0; i <= 0x0FFF; {
-	// 	for j := 0; j < 32; j++ {
-	// 		debug("%02X ", ppu.vram.read(uint16(i)))
-	// 		i++
-	// 	}
-	// 	debug("\n")
-	// }
-
-	// debug("background table \n")
-	// for i := 0x1000; i <= 0x1FFF; {
-	// 	for j := 0; j < 32; j++ {
-	// 		debug("%02X ", ppu.vram.read(uint16(i)))
-	// 		i++
-	// 	}
-	// 	debug("\n")
-	// }
-
-	// debug("name and table attributes \n")
-	// for i := 0x2000; i <= 0x2FFF; {
-	// 	for j := 0; j < 32; j++ {
-	// 		debug("%02X ", ppu.vram.read(uint16(i)))
-	// 		i++
-	// 	}
-	// 	debug("\n")
-	// }
-
-	debug("ooam\n")
-	for i := 0; i < 255; {
-		for j := 0; j < 32; j++ {
-			debug("%02X ", ppu.oamRam.read(uint16(i)))
-			i++
-		}
-		debug("\n")
-	}
-}
-
 func (ppu *Ppu) startVblank() {
-	ppu.drawScreen()
 	ppu.fVerticalBlank = true
 	ppu.cpu.Interrupt(NMI)
 }
@@ -456,64 +422,18 @@ func (ppu *Ppu) patternColorIndex(x, y int, baseAddress uint16, tileNumber uint8
 	return (pattern2 << 1) + pattern1
 }
 
-func (ppu *Ppu) nameTablePattern(x, y int) uint8 {
-	nametableOffset := uint16((x / HORIZONTAL_PIXELS_PER_TILE) +
-		((y / VERTICAL_PIXES_PER_TILE) * TILES_PER_ROW))
-	return ppu.vram.read(ppu.basenameTableAddress + nametableOffset)
-}
-
-func (ppu *Ppu) backgroundPatternColor(x, y int) uint8 {
-	tileNumber := ppu.nameTablePattern(x, y)
-	return ppu.patternColorIndex(x, y, ppu.backgroundPatterTableAddress, tileNumber)
-
-}
-
-var attributeTableLookup = [][]uint8{
-	{0x0, 0x1, 0x4, 0x5},
-	{0x2, 0x3, 0x6, 0x7},
-	{0x8, 0x9, 0xC, 0xD},
-	{0xA, 0xB, 0xE, 0xF}}
-
-func (ppu *Ppu) backgroundAttributeColor(x, y int) uint8 {
-	tileNumber := uint16((x / HORIZONTAL_PIXELS_PER_TILE) +
-		((y / VERTICAL_PIXES_PER_TILE) * TILES_PER_ROW))
-
-	tileRowNumber := tileNumber / TILES_PER_ROW
-	tileColumnNumber := tileNumber % TILES_PER_ROW
-	horizontalOffset := tileColumnNumber / 4
-	verticalOffset := (tileRowNumber / 4) * 8
-
-	attributeByte := ppu.vram.read(ppu.basenameTableAddress + 960 + horizontalOffset + verticalOffset)
-
-	horizontalOffset = tileNumber % 4
-	verticalOffset = tileRowNumber % 4
-
-	attributeTileNumber := attributeTableLookup[verticalOffset][horizontalOffset]
-	attributeColorIndex := uint8(0)
-
-	switch attributeTileNumber {
-	case 0x0, 0x1, 0x2, 0x3:
-		attributeColorIndex = attributeByte << 6
-	case 0x4, 0x5, 0x6, 0x7:
-		attributeColorIndex = attributeByte << 4
-	case 0x8, 0x9, 0xA, 0xB:
-		attributeColorIndex = attributeByte << 2
-	case 0xC, 0xD, 0xE, 0xF:
-		attributeColorIndex = attributeByte
-	}
-
-	return (attributeColorIndex >> 6)
+func (ppu *Ppu) backgroundPatternColor() uint8 {
+	tileNumber := ppu.nameTablePattern()
+	return ppu.patternColorIndex(int(ppu.x), int(ppu.y), ppu.backgroundPatterTableAddress, tileNumber)
 }
 
 func (ppu *Ppu) backgroundColorIndex(x, y int) uint8 {
 
 	backgroundColourIndex := uint8(0)
 
-	if !ppu.displayBackground {
-		backgroundColourIndex = 0
-	} else {
-		patternIndex := ppu.backgroundPatternColor(x, y)
-		attributeIndex := ppu.backgroundAttributeColor(x, y)
+	if ppu.displayBackground {
+		patternIndex := ppu.backgroundPatternColor()
+		attributeIndex := ppu.nameTableAttribute()
 		if patternIndex != 0 {
 			backgroundColourIndex = patternIndex + (attributeIndex << 2)
 		}
@@ -523,17 +443,26 @@ func (ppu *Ppu) backgroundColorIndex(x, y int) uint8 {
 }
 
 func (ppu *Ppu) spriteColorIndex(x, y int, backgroundColorIndex uint8) uint8 {
-	// sprite collision
+	index := uint8(0)
 	sprite := ppu.sprites[x]
+
 	if !sprite.visible {
-		return ppu.vram.read(0x3F00 + uint16(backgroundColorIndex))
+		index = ppu.vram.read(0x3F00 + uint16(backgroundColorIndex))
 	} else if sprite.behindBackground && backgroundColorIndex%4 != 0 {
 		ppu.fSpritZeroHit = true
-		return ppu.vram.read(0x3F00 + uint16(backgroundColorIndex))
+		index = ppu.vram.read(0x3F00 + uint16(backgroundColorIndex))
+	} else {
+		ppu.fSpritZeroHit = true
+		index = ppu.vram.read(0x3F10 + uint16(sprite.paletteIndex))
 	}
 
-	ppu.fSpritZeroHit = true
-	return ppu.vram.read(0x3F10 + uint16(sprite.paletteIndex))
+	// todo check sprite collision
+	// if backgroundColorIndex%4 != 0 && sprite.visible &&
+	// ppu.displayBackground && ppu.displaySprite{
+	//	ppu.fSpritZeroHit = true
+	// }
+
+	return index
 }
 
 func (ppu *Ppu) renderPixel() {
@@ -607,6 +536,7 @@ func (ppu *Ppu) calculateSprites(screenY uint8) {
 							x = 8 - x - 1
 						}
 
+						// todo sprite priority
 						if !ppu.sprites[spriteLetfX+j].visible {
 							patternColorIndex := ppu.patternColorIndex(int(x), int(yOffset), ppu.spritePatternTableAddress, patternTileNumber)
 							if patternColorIndex != 0 {
@@ -625,10 +555,75 @@ func (ppu *Ppu) calculateSprites(screenY uint8) {
 	}
 }
 
+// scrolling
+func (ppu *Ppu) initScroll() {
+	ppu.y = uint16(ppu.scrollY) - 1
+	ppu.incrementScrollY()
+}
+
+func (ppu *Ppu) incrementScrollY() {
+	ppu.scrollBase = ppu.basenameTableAddress
+
+	ppu.x = uint16(ppu.scrollX) - 1
+	ppu.incrementScrollX()
+
+	ppu.y++
+
+	if ppu.y == TILES_PER_COLUMN*8 {
+		switch ppu.scrollBase {
+		case 0x2000, 0x2400:
+			ppu.scrollBase += 0x0800
+		case 0x2800, 0x2C00:
+			ppu.scrollBase -= 0x0800
+		}
+		ppu.y = 0
+	}
+
+}
+
+func (ppu *Ppu) incrementScrollX() {
+	ppu.x++
+
+	if ppu.x == TILES_PER_ROW*8 {
+		switch ppu.scrollBase {
+		case 0x2000, 0x2800:
+			ppu.scrollBase += 0x0400
+		case 0x2400, 0x2C00:
+			ppu.scrollBase -= 0x0400
+		}
+
+		ppu.x = 0
+	}
+}
+
+func (ppu *Ppu) tileNumber() uint16 {
+	return (ppu.y/8)*TILES_PER_ROW + (ppu.x / 8)
+}
+
+func (ppu *Ppu) nameTablePattern() uint8 {
+	return ppu.vram.read(ppu.scrollBase + ppu.tileNumber())
+}
+
+var attributeTableLookup = [][]uint8{
+	{6, 6, 4, 4},
+	{6, 6, 4, 4},
+	{2, 2, 0, 0},
+	{2, 2, 0, 0}}
+
+func (ppu *Ppu) nameTableAttribute() uint8 {
+	tileNumber := ppu.tileNumber()
+	row := tileNumber / TILES_PER_ROW
+	col := tileNumber % TILES_PER_ROW
+
+	attributeByte := ppu.vram.read(ppu.scrollBase + 960 + ((row/4)*8 + col/4))
+
+	return (attributeByte << attributeTableLookup[row%4][col%4]) >> 6
+}
+
 func (ppu *Ppu) step() {
 	ppu.currentScanlineCycle++
+
 	if ppu.currentScanlineCycle == 341 {
-		//		debug("scan line %x\n", ppu.scanline)
 		ppu.scanline++
 		if ppu.scanline == 261 {
 			ppu.scanline = -1
@@ -644,18 +639,25 @@ func (ppu *Ppu) step() {
 			ppu.fVerticalBlank = false
 			ppu.fSpriteOverflow = false
 			ppu.fSpritZeroHit = false
+			ppu.initScroll()
+		}
+
+		if ppu.scanline > 0 && ppu.scanline < SCREEN_HEIGHT {
+			ppu.incrementScrollY()
 		}
 	}
 
 	if ppu.scanline >= 0 && ppu.scanline < SCREEN_HEIGHT {
-
 		if ppu.currentScanlineCycle == 0 {
 			ppu.calculateSprites(uint8(ppu.scanline))
 		}
 
 		if ppu.currentScanlineCycle >= 0 && ppu.currentScanlineCycle < SCREEN_WIDTH {
+			if ppu.currentScanlineCycle > 0 {
+				ppu.incrementScrollX()
+			}
+
 			ppu.renderPixel()
 		}
-
 	}
 }

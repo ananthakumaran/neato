@@ -206,10 +206,11 @@ func (ppu *Ppu) read(address uint16) byte {
 		address := ppu.address
 		ppu.address += uint16(ppu.incrementBy)
 		buffered := ppu.vramReadBuffer
-		ppu.vramReadBuffer = ppu.vram.read(address)
 		if address >= 0x3F00 && address <= 0x3FFF {
+			ppu.vramReadBuffer = ppu.vram.read(address - 0x1000)
 			return ppu.vram.read(address)
 		}
+		ppu.vramReadBuffer = ppu.vram.read(address)
 		return buffered
 	default:
 		info("READ unimplemented %X", address)

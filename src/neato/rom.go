@@ -48,6 +48,10 @@ func LoadRom(filename string) *Rom {
 
 	debug("mapper %d", mapper)
 
+	if mapper != 0 {
+		fatal("unimplemented mapper", mapper)
+	}
+
 	debug("control")
 
 	rom.PrgRoms = make([][]byte, rom.PrgRomCount)

@@ -173,7 +173,7 @@ func newCpu(rom *Rom, ppu *Ppu) *Cpu {
 	case 2:
 		cpu.ram.copy(0xC000, 0x10000, rom.PrgRoms[1])
 	default:
-		fatal("uknown prg rom count")
+		fatal("uknown prg rom count", rom.PrgRomCount)
 	}
 
 	// IO registers
@@ -207,11 +207,11 @@ func (cpu *Cpu) step() int {
 
 	// info("%04X  ", cpu.pc)
 
-	// bytes := Bytes[ir]
-	// if bytes <= 0 && bytes >= -10 {
-	// 	fmt.Printf(" ir %x %d bytes %d", ir, ir, bytes)
-	// 	fatal("invalid bytes")
-	// }
+	bytes := Bytes[ir]
+	if bytes <= 0 && bytes >= -10 {
+		fmt.Printf(" ir %x %d bytes %d", ir, ir, bytes)
+		fatal("invalid bytes")
+	}
 
 	// if bytes <= -10 {
 	// 	bytes = -bytes - 10

@@ -12,6 +12,10 @@ type Gui struct {
 	pixels []byte
 }
 
+const (
+	SCALE = 3
+)
+
 func newGui() *Gui {
 	gui := Gui{}
 	gui.pixels = make([]byte, SCREEN_WIDTH*SCREEN_HEIGHT*3)
@@ -22,7 +26,7 @@ func newGui() *Gui {
 
 	glfw.OpenWindowHint(glfw.WindowNoResize, 1)
 
-	if err := glfw.OpenWindow(SCREEN_WIDTH*3, SCREEN_HEIGHT*3, 8, 8, 8, 0, 0, 0, glfw.Windowed); err != nil {
+	if err := glfw.OpenWindow(SCREEN_WIDTH*SCALE, SCREEN_HEIGHT*SCALE, 8, 8, 8, 0, 0, 0, glfw.Windowed); err != nil {
 		fatal("can't open window", err)
 	}
 
@@ -52,7 +56,7 @@ func (gui *Gui) RefreshScreen() {
 		return
 	}
 
-	gl.PixelZoom(3, 3)
+	gl.PixelZoom(SCALE, SCALE)
 	gl.DrawPixels(SCREEN_WIDTH, SCREEN_HEIGHT, gl.RGB, gl.UNSIGNED_BYTE, gui.pixels)
 	glfw.SwapBuffers()
 }

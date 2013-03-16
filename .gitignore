@@ -12,3 +12,5 @@ src/launchpad.net/
 src/neato/instr_test-v3/
 src/neato/ppu_vbl_nmi/
 src/neato/neato.log
+blargg_ppu_tests_*
+src/code.google.com/

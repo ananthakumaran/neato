@@ -14,3 +14,5 @@ src/neato/ppu_vbl_nmi/
 src/neato/neato.log
 blargg_ppu_tests_*
 src/code.google.com/
+src/neato/cpu_tests/ascii-src/
+src/neato/cpu_tests/start

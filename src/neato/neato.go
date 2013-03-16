@@ -11,7 +11,8 @@ var logDebug = os.Getenv("DEBUG") == "t"
 func main() {
 	args := os.Args
 	if len(args) != 2 {
-		fatal("usage neato filename")
+		fmt.Println("usage neato filename")
+		os.Exit(1)
 	}
 
 	rom := LoadRom(args[1])

@@ -449,7 +449,7 @@ func (ppu *Ppu) backgroundColorIndex(x, y int) uint8 {
 
 	backgroundColourIndex := uint8(0)
 
-	if ppu.displayBackground {
+	if ppu.displayBackground && (ppu.showclipBackground || x > 7) {
 		patternIndex := ppu.backgroundPatternColor()
 		attributeIndex := ppu.nameTableAttribute()
 		if patternIndex != 0 {
@@ -464,21 +464,26 @@ func (ppu *Ppu) spriteColorIndex(x, y int, backgroundColorIndex uint8) uint8 {
 	index := uint8(0)
 	sprite := ppu.sprites[x]
 
-	if !sprite.visible {
-		index = ppu.vram.read(0x3F00 + uint16(backgroundColorIndex))
-	} else if sprite.behindBackground && backgroundColorIndex%4 != 0 {
-		ppu.fSpritZeroHit = true
+	if !sprite.visible ||
+		(sprite.behindBackground && backgroundColorIndex%4 != 0) ||
+		(!ppu.showclipSprite && x <= 7) {
 		index = ppu.vram.read(0x3F00 + uint16(backgroundColorIndex))
 	} else {
-		ppu.fSpritZeroHit = true
 		index = ppu.vram.read(0x3F10 + uint16(sprite.paletteIndex))
 	}
 
-	// todo check sprite collision
-	// if backgroundColorIndex%4 != 0 && sprite.visible &&
-	// ppu.displayBackground && ppu.displaySprite{
-	//	ppu.fSpritZeroHit = true
-	// }
+	if backgroundColorIndex%4 != 0 &&
+		sprite.paletteIndex%4 != 0 &&
+		sprite.visible &&
+		ppu.displayBackground &&
+		ppu.displaySprite &&
+		(ppu.showclipBackground || x > 7) &&
+		(ppu.showclipSprite || x > 7) &&
+		!ppu.fSpritZeroHit &&
+		x != 255 &&
+		y < 239 {
+		ppu.fSpritZeroHit = true
+	}
 
 	return index
 }
@@ -519,7 +524,7 @@ func (ppu *Ppu) calculateSprites(screenY uint8) {
 	if ppu.displaySprite {
 		for i := uint8(0); i < 64; i++ {
 			if ppu.spriteSize == 8 {
-				spriteTopY := uint8(ppu.oamGetY(i))
+				spriteTopY := uint8(ppu.oamGetY(i)) - 1
 				inRange := false
 				yOffset := uint8(0)
 
@@ -548,7 +553,7 @@ func (ppu *Ppu) calculateSprites(screenY uint8) {
 						yOffset = 8 - yOffset - 1
 					}
 
-					for j := uint8(0); j < 8; j++ {
+					for j := uint8(0); j < 8 && (uint16(j)+uint16(spriteLetfX) < SCREEN_WIDTH); j++ {
 						x := j
 						if flippedHorizontal {
 							x = 8 - x - 1
@@ -558,9 +563,10 @@ func (ppu *Ppu) calculateSprites(screenY uint8) {
 						if !ppu.sprites[spriteLetfX+j].visible {
 							patternColorIndex := ppu.patternColorIndex(int(x), int(yOffset), ppu.spritePatternTableAddress, patternTileNumber)
 							if patternColorIndex != 0 {
-								ppu.sprites[spriteLetfX+j].visible = true
-								ppu.sprites[spriteLetfX+j].paletteIndex = patternColorIndex + attributeColorIndex
-								ppu.sprites[spriteLetfX+j].behindBackground = attributeByte>>5&1 == 1
+								sprite := &ppu.sprites[spriteLetfX+j]
+								sprite.visible = true
+								sprite.paletteIndex = patternColorIndex + attributeColorIndex
+								sprite.behindBackground = attributeByte>>5&1 == 1
 							}
 						}
 
@@ -653,23 +659,20 @@ func (ppu *Ppu) step() {
 			ppu.startVblank()
 		}
 
-		if ppu.scanline == 0 {
+		if ppu.scanline == -1 {
 			ppu.fVerticalBlank = false
 			ppu.fSpriteOverflow = false
 			ppu.fSpritZeroHit = false
 			ppu.initScroll()
 		}
 
-		if ppu.scanline > 0 && ppu.scanline < SCREEN_HEIGHT {
+		if ppu.scanline >= -1 && ppu.scanline < SCREEN_HEIGHT {
+			ppu.calculateSprites(uint8(ppu.scanline + 1))
 			ppu.incrementScrollY()
 		}
 	}
 
 	if ppu.scanline >= 0 && ppu.scanline < SCREEN_HEIGHT {
-		if ppu.currentScanlineCycle == 0 {
-			ppu.calculateSprites(uint8(ppu.scanline))
-		}
-
 		if ppu.currentScanlineCycle >= 0 && ppu.currentScanlineCycle < SCREEN_WIDTH {
 			if ppu.currentScanlineCycle > 0 {
 				ppu.incrementScrollX()

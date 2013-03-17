@@ -135,6 +135,7 @@ type Ppu struct {
 	vramReadBuffer uint8
 
 	x          uint16
+	fineX      uint16
 	y          uint16
 	scrollBase uint16
 }
@@ -248,6 +249,9 @@ func (ppu *Ppu) write(address uint16, val byte) {
 		switch ppu.scrollAddrStatus {
 		case 0:
 			ppu.scrollX = val
+			ppu.fineX = uint16(val & 0x7)
+			ppu.x &= 0xFFF8
+			ppu.x += ppu.fineX
 			ppu.scrollAddrStatus++
 		case 1:
 			ppu.scrollY = val
@@ -257,12 +261,26 @@ func (ppu *Ppu) write(address uint16, val byte) {
 		switch ppu.addrStatus {
 		case 0:
 			ppu.address = (uint16(val) << 8) | ppu.address&0x00FF
-			//debug(" VRAM %X val %X  ", ppu.address, val)
 			ppu.addrStatus++
 		case 1:
 			ppu.address = uint16(val) | ppu.address&0xFF00
-			//debug(" VRAM %X val %X ", ppu.address, val)
 			ppu.addrStatus = 0
+
+			ppu.x = ((ppu.address & 0x001F) << 3) + ppu.fineX
+			ppu.scrollX = uint8(ppu.x)
+			ppu.y = (((ppu.address >> 5) & 0x001F) << 3) + ((ppu.address >> 12) & 0x7)
+			ppu.scrollY = uint8(ppu.y)
+			switch (ppu.address >> 10) & 0x03 {
+			case 0:
+				ppu.scrollBase = 0x2000
+			case 1:
+				ppu.scrollBase = 0x2400
+			case 2:
+				ppu.scrollBase = 0x2800
+			case 3:
+				ppu.scrollBase = 0x2C00
+			}
+			ppu.basenameTableAddress = ppu.scrollBase
 		}
 	case 0x2007:
 		debug(" VRAM %X val %X  ", ppu.address, val)
@@ -501,7 +519,7 @@ func (ppu *Ppu) calculateSprites(screenY uint8) {
 	if ppu.displaySprite {
 		for i := uint8(0); i < 64; i++ {
 			if ppu.spriteSize == 8 {
-				spriteTopY := uint8(ppu.oamGetY(i)) - 1
+				spriteTopY := uint8(ppu.oamGetY(i))
 				inRange := false
 				yOffset := uint8(0)
 
@@ -557,7 +575,7 @@ func (ppu *Ppu) calculateSprites(screenY uint8) {
 
 // scrolling
 func (ppu *Ppu) initScroll() {
-	ppu.y = uint16(ppu.scrollY) - 1
+	ppu.y = uint16(ppu.scrollY)
 	ppu.incrementScrollY()
 }
 

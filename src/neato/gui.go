@@ -6,16 +6,21 @@ import (
 )
 
 type Gui struct {
-	pixels []byte
+	pixels       []byte
+	lastMeasured float64
+	throttleCnt  int
 }
 
 const (
-	SCALE = 3
+	SCALE                  = 3
+	FPS                    = 60.0
+	FPS_THROTTLE_FREQUENCY = 15.0
 )
 
 func newGui() *Gui {
 	gui := Gui{}
 	gui.pixels = make([]byte, SCREEN_WIDTH*SCREEN_HEIGHT*3)
+	gui.lastMeasured = glfw.Time()
 
 	if err := glfw.Init(); err != nil {
 		fatal("can't init glfw", err)
@@ -48,4 +53,25 @@ func (gui *Gui) RefreshScreen() {
 	gl.PixelZoom(SCALE, SCALE)
 	gl.DrawPixels(SCREEN_WIDTH, SCREEN_HEIGHT, gl.RGB, gl.UNSIGNED_BYTE, gui.pixels)
 	glfw.SwapBuffers()
+	gui.throttle()
+}
+
+func (gui *Gui) throttle() {
+	gui.throttleCnt++
+	if gui.throttleCnt == FPS_THROTTLE_FREQUENCY {
+		now := glfw.Time()
+		diff := (FPS_THROTTLE_FREQUENCY / FPS) - (now - gui.lastMeasured)
+
+		if diff > 0 {
+			if diff > 0.05 {
+				glfw.Sleep(diff)
+			}
+		} else {
+			// running slow
+		}
+
+		gui.throttleCnt = 0
+		gui.lastMeasured = now
+	}
+
 }

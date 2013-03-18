@@ -13,8 +13,8 @@ const (
 )
 
 const (
-	VERTICAL_MIRRORING   = 1
-	HORIZONTAL_MIRRORING = 2
+	VERTICAL_MIRRORING = iota
+	HORIZONTAL_MIRRORING
 )
 
 // http://www.thealmightyguru.com/Games/Hacking/Wiki/index.php?title=NES_Palette

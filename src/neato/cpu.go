@@ -6,9 +6,9 @@ import (
 )
 
 const (
-	IRQ   = 0
-	NMI   = 1
-	RESET = 2
+	IRQ = iota
+	NMI
+	RESET
 )
 
 var Cycles = [0x100]int{

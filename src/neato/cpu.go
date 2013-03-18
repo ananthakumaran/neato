@@ -9,6 +9,22 @@ const (
 	IRQ = iota
 	NMI
 	RESET
+
+	// addressing modes
+	ABS
+	ABSX
+	ABSY
+	ZP
+	ZPX
+	ZPY
+	IZY
+	IZX
+	IND
+	IMM
+	ACC
+	IMP
+	REL
+	CRASH
 )
 
 var Cycles = [0x100]int{
@@ -95,33 +111,33 @@ var Opcodes = [0x100]string{
 	"BEQ", "SBC", "KIL", "ISC", "NOP", "SBC", "INC", "ISC", "SED", "SBC",
 	"NOP", "ISC", "NOP", "SBC", "INC", "ISC"}
 
-var AddressingMode = [0x100]string{
-	"", "izx", "CRASH", "izx", "zp", "zp", "zp", "zp", "", "imm",
-	"acc", "imm", "abs", "abs", "abs", "abs", "rel", "izy", "CRASH", "izy",
-	"zpx", "zpx", "zpx", "zpx", "", "absy", "", "absy", "absx", "absx",
-	"absx", "absx", "abs", "izx", "CRASH", "izx", "zp", "zp", "zp", "zp",
-	"", "imm", "acc", "imm", "abs", "abs", "abs", "abs", "rel", "izy",
-	"CRASH", "izy", "zpx", "zpx", "zpx", "zpx", "", "absy", "", "absy",
-	"absx", "absx", "absx", "absx", "", "izx", "CRASH", "izx", "zp", "zp",
-	"zp", "zp", "", "imm", "acc", "imm", "abs", "abs", "abs", "abs",
-	"rel", "izy", "CRASH", "izy", "zpx", "zpx", "zpx", "zpx", "", "absy",
-	"", "absy", "absx", "absx", "absx", "absx", "", "izx", "CRASH", "izx",
-	"zp", "zp", "zp", "zp", "", "imm", "acc", "imm", "ind", "abs",
-	"abs", "abs", "rel", "izy", "CRASH", "izy", "zpx", "zpx", "zpx", "zpx",
-	"", "absy", "", "absy", "absx", "absx", "absx", "absx", "imm", "izx",
-	"imm", "izx", "zp", "zp", "zp", "zp", "", "imm", "", "imm",
-	"abs", "abs", "abs", "abs", "rel", "izy", "CRASH", "izy", "zpx", "zpx",
-	"zpy", "zpy", "", "absy", "", "", "absx", "absx", "absy", "absy",
-	"imm", "izx", "imm", "izx", "zp", "zp", "zp", "zp", "", "imm",
-	"", "imm", "abs", "abs", "abs", "abs", "rel", "izy", "CRASH", "izy",
-	"zpx", "zpx", "zpy", "zpy", "", "absy", "", "absy", "absx", "absx",
-	"absy", "absy", "imm", "izx", "imm", "izx", "zp", "zp", "zp", "zp",
-	"", "imm", "", "imm", "abs", "abs", "abs", "abs", "rel", "izy",
-	"CRASH", "izy", "zpx", "zpx", "zpx", "zpx", "", "absy", "", "absy",
-	"absx", "absx", "absx", "absx", "imm", "izx", "imm", "izx", "zp", "zp",
-	"zp", "zp", "", "imm", "", "imm", "abs", "abs", "abs", "abs",
-	"rel", "izy", "CRASH", "izy", "zpx", "zpx", "zpx", "zpx", "", "absy",
-	"", "absy", "absx", "absx", "absx"}
+var AddressingMode = [0x100]uint8{
+	IMP, IZX, CRASH, IZX, ZP, ZP, ZP, ZP, IMP, IMM,
+	ACC, IMM, ABS, ABS, ABS, ABS, REL, IZY, CRASH, IZY,
+	ZPX, ZPX, ZPX, ZPX, IMP, ABSY, IMP, ABSY, ABSX, ABSX,
+	ABSX, ABSX, ABS, IZX, CRASH, IZX, ZP, ZP, ZP, ZP,
+	IMP, IMM, ACC, IMM, ABS, ABS, ABS, ABS, REL, IZY,
+	CRASH, IZY, ZPX, ZPX, ZPX, ZPX, IMP, ABSY, IMP, ABSY,
+	ABSX, ABSX, ABSX, ABSX, IMP, IZX, CRASH, IZX, ZP, ZP,
+	ZP, ZP, IMP, IMM, ACC, IMM, ABS, ABS, ABS, ABS,
+	REL, IZY, CRASH, IZY, ZPX, ZPX, ZPX, ZPX, IMP, ABSY,
+	IMP, ABSY, ABSX, ABSX, ABSX, ABSX, IMP, IZX, CRASH, IZX,
+	ZP, ZP, ZP, ZP, IMP, IMM, ACC, IMM, IND, ABS,
+	ABS, ABS, REL, IZY, CRASH, IZY, ZPX, ZPX, ZPX, ZPX,
+	IMP, ABSY, IMP, ABSY, ABSX, ABSX, ABSX, ABSX, IMM, IZX,
+	IMM, IZX, ZP, ZP, ZP, ZP, IMP, IMM, IMP, IMM,
+	ABS, ABS, ABS, ABS, REL, IZY, CRASH, IZY, ZPX, ZPX,
+	ZPY, ZPY, IMP, ABSY, IMP, IMP, ABSX, ABSX, ABSY, ABSY,
+	IMM, IZX, IMM, IZX, ZP, ZP, ZP, ZP, IMP, IMM,
+	IMP, IMM, ABS, ABS, ABS, ABS, REL, IZY, CRASH, IZY,
+	ZPX, ZPX, ZPY, ZPY, IMP, ABSY, IMP, ABSY, ABSX, ABSX,
+	ABSY, ABSY, IMM, IZX, IMM, IZX, ZP, ZP, ZP, ZP,
+	IMP, IMM, IMP, IMM, ABS, ABS, ABS, ABS, REL, IZY,
+	CRASH, IZY, ZPX, ZPX, ZPX, ZPX, IMP, ABSY, IMP, ABSY,
+	ABSX, ABSX, ABSX, ABSX, IMM, IZX, IMM, IZX, ZP, ZP,
+	ZP, ZP, IMP, IMM, IMP, IMM, ABS, ABS, ABS, ABS,
+	REL, IZY, CRASH, IZY, ZPX, ZPX, ZPX, ZPX, IMP, ABSY,
+	IMP, ABSY, ABSX, ABSX, ABSX}
 
 type Cpu struct {
 	rom      *Rom
@@ -236,7 +252,7 @@ func (cpu *Cpu) step() int {
 	cpu.cycles = Cycles[ir]
 
 	switch AddressingMode[ir] {
-	case "abs":
+	case ABS:
 		address = uint16(cpu.read(cpu.pc+2))<<8 | uint16(cpu.read(cpu.pc+1))
 
 		switch Opcodes[ir] {
@@ -247,7 +263,7 @@ func (cpu *Cpu) step() int {
 
 		}
 
-	case "absx":
+	case ABSX:
 		tempAddress := uint16(cpu.read(cpu.pc+2))<<8 | uint16(cpu.read(cpu.pc+1))
 		address = tempAddress + uint16(cpu.x)
 		// info("$%04X,X @ %04X = %02X         ", tempAddress, address, cpu.dummyRead(address))
@@ -258,7 +274,7 @@ func (cpu *Cpu) step() int {
 			}
 		}
 
-	case "absy":
+	case ABSY:
 		tempAddress := uint16(cpu.read(cpu.pc+2))<<8 | uint16(cpu.read(cpu.pc+1))
 		address = tempAddress + uint16(cpu.y)
 		// info("$%04X,Y @ %04X = %02X         ", tempAddress, address, cpu.dummyRead(address))
@@ -267,21 +283,21 @@ func (cpu *Cpu) step() int {
 			cpu.cycles++
 		}
 
-	case "zp":
+	case ZP:
 		address = uint16(cpu.read(cpu.pc + 1))
 		// info("$%02X = %02X                    ", cpu.read(cpu.pc+1), cpu.dummyRead(address))
 
-	case "zpx":
+	case ZPX:
 		base := cpu.read(cpu.pc + 1)
 		address = uint16(base + cpu.x)
 		// info("$%02X,X @ %02X = %02X             ", base, address, cpu.dummyRead(address))
 
-	case "zpy":
+	case ZPY:
 		base := cpu.read(cpu.pc + 1)
 		address = uint16(base + cpu.y)
 		// info("$%02X,Y @ %02X = %02X             ", base, address, cpu.dummyRead(address))
 
-	case "izy":
+	case IZY:
 		base := (cpu.read(cpu.pc + 1))
 		tempAddress := uint16(cpu.read(uint16(base+1)))<<8 | uint16(cpu.read(uint16(base)))
 		address = tempAddress + uint16(cpu.y)
@@ -292,13 +308,13 @@ func (cpu *Cpu) step() int {
 
 		// info("($%02X),Y = %04X @ %04X = %02X  ", base, tempAddress, address, cpu.dummyRead(address))
 
-	case "izx":
+	case IZX:
 		val := cpu.read(cpu.pc + 1)
 		base := val + cpu.x
 		address = uint16(cpu.read(uint16(base+1)))<<8 | uint16(cpu.read(uint16(base)))
 		// info("($%02X,X) @ %02X = %04X = %02X    ", val, base, address, cpu.dummyRead(address))
 
-	case "ind":
+	case IND:
 		base := uint16(cpu.read(cpu.pc+2))<<8 | uint16(cpu.read(cpu.pc+1))
 		address = uint16(cpu.read(base+1))<<8 | uint16(cpu.read(base))
 		// info("($%04X) = %04X              ", base, address)
@@ -308,15 +324,15 @@ func (cpu *Cpu) step() int {
 			address = uint16(cpu.read(base&0xFF00))<<8 | uint16(cpu.read(base))
 		}
 
-	case "imm":
+	case IMM:
 		immediate = true
 		// info("#$%02X                        ", cpu.read(cpu.pc+1))
-	case "acc":
+	case ACC:
 		accumulator = true
 		// info("A                           ")
-	case "":
+	case IMP:
 		// info("                            ")
-	case "rel": // never mind
+	case REL: // never mid
 		address = uint16(int(cpu.pc)+int(int8(cpu.read(cpu.pc+1)))) + uint16(Bytes[ir])
 		// info("$%04X                       ", address)
 	default:

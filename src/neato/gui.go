@@ -63,15 +63,15 @@ func (gui *Gui) throttle() {
 		diff := (FPS_THROTTLE_FREQUENCY / FPS) - (now - gui.lastMeasured)
 
 		if diff > 0 {
-			if diff > 0.05 {
-				glfw.Sleep(diff)
-			}
+			gui.lastMeasured = now + diff
+			glfw.Sleep(diff)
 		} else {
 			// running slow
+			gui.lastMeasured = now
 		}
 
 		gui.throttleCnt = 0
-		gui.lastMeasured = now
+
 	}
 
 }

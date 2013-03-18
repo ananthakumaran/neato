@@ -25,18 +25,23 @@ func LoadRom(filename string) *Rom {
 		fatal("can't read header")
 	}
 
-	debug("header %p\n", header)
-
 	if string(header[0:3]) != "NES" {
 		fatal("invalid file format")
 	}
+
+	if string(header[7:0xF]) == "DiskDude" ||
+		string(header[7:0xF]) == "demiforce" {
+		copy(header[7:0xF], make([]byte, 8))
+	}
+
+	debug("header %v\n", header)
 
 	rom.PrgRomCount = int(header[4])
 	debug("prg count %d\n", rom.PrgRomCount)
 	rom.ChrRomCount = int(header[5])
 	debug("chr count %d\n", rom.ChrRomCount)
 
-	mapper := (header[6]&0xF0)>>4 | (header[7] & 0xF0)
+	mapper := header[6]>>4 | (header[7] & 0xF0)
 
 	if header[6]&0x01 == 1 {
 		rom.mirroring = VERTICAL_MIRRORING

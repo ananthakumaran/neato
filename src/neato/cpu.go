@@ -25,6 +25,83 @@ const (
 	IMP
 	REL
 	CRASH
+
+	// opcodes
+	ADC
+	AHX
+	ALR
+	ANC
+	AND
+	ARR
+	ASL
+	AXS
+	BCC
+	BCS
+	BEQ
+	BIT
+	BMI
+	BNE
+	BPL
+	BRK
+	BVC
+	BVS
+	CLC
+	CLD
+	CLI
+	CLV
+	CMP
+	CPX
+	CPY
+	DCP
+	DEC
+	DEX
+	DEY
+	EOR
+	INC
+	INX
+	INY
+	ISC
+	JMP
+	JSR
+	KIL
+	LAS
+	LAX
+	LDA
+	LDX
+	LDY
+	LSR
+	NOP
+	ORA
+	PHA
+	PHP
+	PLA
+	PLP
+	RLA
+	ROL
+	ROR
+	RRA
+	RTI
+	RTS
+	SAX
+	SBC
+	SEC
+	SED
+	SEI
+	SHX
+	SHY
+	SLO
+	SRE
+	STA
+	STX
+	STY
+	TAS
+	TAX
+	TAY
+	TSX
+	TXA
+	TXS
+	TYA
+	XAA
 )
 
 var Cycles = [0x100]int{
@@ -83,33 +160,33 @@ var Bytes = [0x100]int{
 	2, 2, -1, 2, 2, 2, 2, 2, 1, 3,
 	1, 3, 3, 3, 3, 3}
 
-var Opcodes = [0x100]string{
-	"BRK", "ORA", "KIL", "SLO", "NOP", "ORA", "ASL", "SLO", "PHP", "ORA",
-	"ASL", "ANC", "NOP", "ORA", "ASL", "SLO", "BPL", "ORA", "KIL", "SLO",
-	"NOP", "ORA", "ASL", "SLO", "CLC", "ORA", "NOP", "SLO", "NOP", "ORA",
-	"ASL", "SLO", "JSR", "AND", "KIL", "RLA", "BIT", "AND", "ROL", "RLA",
-	"PLP", "AND", "ROL", "ANC", "BIT", "AND", "ROL", "RLA", "BMI", "AND",
-	"KIL", "RLA", "NOP", "AND", "ROL", "RLA", "SEC", "AND", "NOP", "RLA",
-	"NOP", "AND", "ROL", "RLA", "RTI", "EOR", "KIL", "SRE", "NOP", "EOR",
-	"LSR", "SRE", "PHA", "EOR", "LSR", "ALR", "JMP", "EOR", "LSR", "SRE",
-	"BVC", "EOR", "KIL", "SRE", "NOP", "EOR", "LSR", "SRE", "CLI", "EOR",
-	"NOP", "SRE", "NOP", "EOR", "LSR", "SRE", "RTS", "ADC", "KIL", "RRA",
-	"NOP", "ADC", "ROR", "RRA", "PLA", "ADC", "ROR", "ARR", "JMP", "ADC",
-	"ROR", "RRA", "BVS", "ADC", "KIL", "RRA", "NOP", "ADC", "ROR", "RRA",
-	"SEI", "ADC", "NOP", "RRA", "NOP", "ADC", "ROR", "RRA", "NOP", "STA",
-	"NOP", "SAX", "STY", "STA", "STX", "SAX", "DEY", "NOP", "TXA", "XAA",
-	"STY", "STA", "STX", "SAX", "BCC", "STA", "KIL", "AHX", "STY", "STA",
-	"STX", "SAX", "TYA", "STA", "TXS", "TAS", "SHY", "STA", "SHX", "AHX",
-	"LDY", "LDA", "LDX", "LAX", "LDY", "LDA", "LDX", "LAX", "TAY", "LDA",
-	"TAX", "LAX", "LDY", "LDA", "LDX", "LAX", "BCS", "LDA", "KIL", "LAX",
-	"LDY", "LDA", "LDX", "LAX", "CLV", "LDA", "TSX", "LAS", "LDY", "LDA",
-	"LDX", "LAX", "CPY", "CMP", "NOP", "DCP", "CPY", "CMP", "DEC", "DCP",
-	"INY", "CMP", "DEX", "AXS", "CPY", "CMP", "DEC", "DCP", "BNE", "CMP",
-	"KIL", "DCP", "NOP", "CMP", "DEC", "DCP", "CLD", "CMP", "NOP", "DCP",
-	"NOP", "CMP", "DEC", "DCP", "CPX", "SBC", "NOP", "ISC", "CPX", "SBC",
-	"INC", "ISC", "INX", "SBC", "NOP", "SBC", "CPX", "SBC", "INC", "ISC",
-	"BEQ", "SBC", "KIL", "ISC", "NOP", "SBC", "INC", "ISC", "SED", "SBC",
-	"NOP", "ISC", "NOP", "SBC", "INC", "ISC"}
+var Opcodes = [0x100]uint8{
+	BRK, ORA, KIL, SLO, NOP, ORA, ASL, SLO, PHP, ORA,
+	ASL, ANC, NOP, ORA, ASL, SLO, BPL, ORA, KIL, SLO,
+	NOP, ORA, ASL, SLO, CLC, ORA, NOP, SLO, NOP, ORA,
+	ASL, SLO, JSR, AND, KIL, RLA, BIT, AND, ROL, RLA,
+	PLP, AND, ROL, ANC, BIT, AND, ROL, RLA, BMI, AND,
+	KIL, RLA, NOP, AND, ROL, RLA, SEC, AND, NOP, RLA,
+	NOP, AND, ROL, RLA, RTI, EOR, KIL, SRE, NOP, EOR,
+	LSR, SRE, PHA, EOR, LSR, ALR, JMP, EOR, LSR, SRE,
+	BVC, EOR, KIL, SRE, NOP, EOR, LSR, SRE, CLI, EOR,
+	NOP, SRE, NOP, EOR, LSR, SRE, RTS, ADC, KIL, RRA,
+	NOP, ADC, ROR, RRA, PLA, ADC, ROR, ARR, JMP, ADC,
+	ROR, RRA, BVS, ADC, KIL, RRA, NOP, ADC, ROR, RRA,
+	SEI, ADC, NOP, RRA, NOP, ADC, ROR, RRA, NOP, STA,
+	NOP, SAX, STY, STA, STX, SAX, DEY, NOP, TXA, XAA,
+	STY, STA, STX, SAX, BCC, STA, KIL, AHX, STY, STA,
+	STX, SAX, TYA, STA, TXS, TAS, SHY, STA, SHX, AHX,
+	LDY, LDA, LDX, LAX, LDY, LDA, LDX, LAX, TAY, LDA,
+	TAX, LAX, LDY, LDA, LDX, LAX, BCS, LDA, KIL, LAX,
+	LDY, LDA, LDX, LAX, CLV, LDA, TSX, LAS, LDY, LDA,
+	LDX, LAX, CPY, CMP, NOP, DCP, CPY, CMP, DEC, DCP,
+	INY, CMP, DEX, AXS, CPY, CMP, DEC, DCP, BNE, CMP,
+	KIL, DCP, NOP, CMP, DEC, DCP, CLD, CMP, NOP, DCP,
+	NOP, CMP, DEC, DCP, CPX, SBC, NOP, ISC, CPX, SBC,
+	INC, ISC, INX, SBC, NOP, SBC, CPX, SBC, INC, ISC,
+	BEQ, SBC, KIL, ISC, NOP, SBC, INC, ISC, SED, SBC,
+	NOP, ISC, NOP, SBC, INC, ISC}
 
 var AddressingMode = [0x100]uint8{
 	IMP, IZX, CRASH, IZX, ZP, ZP, ZP, ZP, IMP, IMM,
@@ -256,7 +333,7 @@ func (cpu *Cpu) step() int {
 		address = uint16(cpu.read(cpu.pc+2))<<8 | uint16(cpu.read(cpu.pc+1))
 
 		switch Opcodes[ir] {
-		case "JMP", "JSR":
+		case JMP, JSR:
 			// info("$%04X                       ", address)
 		default:
 			// info("$%04X = %02X                  ", address, cpu.dummyRead(address))
@@ -268,7 +345,7 @@ func (cpu *Cpu) step() int {
 		address = tempAddress + uint16(cpu.x)
 		// info("$%04X,X @ %04X = %02X         ", tempAddress, address, cpu.dummyRead(address))
 		switch Opcodes[ir] {
-		case "ADC", "AND", "CMP", "EOR", "LDA", "LDY", "ORA", "SBC", "NOP":
+		case ADC, AND, CMP, EOR, LDA, LDY, ORA, SBC, NOP:
 			if tempAddress>>8 != address>>8 {
 				cpu.cycles++
 			}
@@ -279,7 +356,7 @@ func (cpu *Cpu) step() int {
 		address = tempAddress + uint16(cpu.y)
 		// info("$%04X,Y @ %04X = %02X         ", tempAddress, address, cpu.dummyRead(address))
 
-		if Opcodes[ir] != "STA" && tempAddress>>8 != address>>8 {
+		if Opcodes[ir] != STA && tempAddress>>8 != address>>8 {
 			cpu.cycles++
 		}
 
@@ -342,42 +419,42 @@ func (cpu *Cpu) step() int {
 	// info("A:%02X X:%02X Y:%02X P:%02X SP:%02X", cpu.ac, cpu.x, cpu.y, cpu.getStatus(), cpu.stack)
 
 	switch Opcodes[ir] {
-	case "CLD":
+	case CLD:
 		cpu.fDecimal = false
-	case "CLC":
+	case CLC:
 		cpu.fCarry = false
-	case "SEC":
+	case SEC:
 		cpu.fCarry = true
-	case "SEI":
+	case SEI:
 		cpu.fInterruptDisable = true
-	case "SED":
+	case SED:
 		cpu.fDecimal = true
-	case "CLI":
+	case CLI:
 		cpu.fInterruptDisable = false
-	case "CLV":
+	case CLV:
 		cpu.fOverflow = false
-	case "LDA":
+	case LDA:
 		cpu.ac = cpu.val(immediate, address)
 		cpu.zeroNeg(cpu.ac)
-	case "LDX":
+	case LDX:
 		cpu.x = cpu.val(immediate, address)
 		cpu.zeroNeg(cpu.x)
-	case "LDY":
+	case LDY:
 		cpu.y = cpu.val(immediate, address)
 		cpu.zeroNeg(cpu.y)
-	case "CMP":
+	case CMP:
 		val := cpu.val(immediate, address)
 		cpu.fCarry = cpu.ac >= val
 		cpu.zeroNeg(cpu.ac - val)
-	case "CPY":
+	case CPY:
 		val := cpu.val(immediate, address)
 		cpu.fCarry = cpu.y >= val
 		cpu.zeroNeg(cpu.y - val)
-	case "CPX":
+	case CPX:
 		val := cpu.val(immediate, address)
 		cpu.fCarry = cpu.x >= val
 		cpu.zeroNeg(cpu.x - val)
-	case "ADC":
+	case ADC:
 		val := cpu.val(immediate, address)
 		if cpu.respectDecimalMode && cpu.fDecimal {
 			cpu.fZero = (int(val&0xff)+int(cpu.ac&0xff)+int(cpu.carry()))&0xff == 0
@@ -405,7 +482,7 @@ func (cpu *Cpu) step() int {
 			cpu.zeroNeg(cpu.ac)
 		}
 
-	case "SBC":
+	case SBC:
 		val := cpu.val(immediate, address)
 		a := 0
 
@@ -435,7 +512,7 @@ func (cpu *Cpu) step() int {
 			cpu.ac = uint8(result)
 		}
 
-	case "ASL":
+	case ASL:
 		if accumulator {
 			cpu.fCarry = (cpu.ac>>7)&1 == 1
 			cpu.ac = cpu.ac << 1
@@ -448,7 +525,7 @@ func (cpu *Cpu) step() int {
 			cpu.zeroNeg(val)
 		}
 
-	case "LSR":
+	case LSR:
 		if accumulator {
 			cpu.fCarry = (cpu.ac & 0x01) == 1
 			cpu.ac = cpu.ac >> 1
@@ -461,7 +538,7 @@ func (cpu *Cpu) step() int {
 			cpu.zeroNeg(val)
 		}
 
-	case "ROL":
+	case ROL:
 		c := cpu.carry()
 		if accumulator {
 			cpu.fCarry = (cpu.ac >> 7) == 1
@@ -474,7 +551,7 @@ func (cpu *Cpu) step() int {
 			cpu.write(address, val)
 			cpu.zeroNeg(val)
 		}
-	case "ROR":
+	case ROR:
 		c := cpu.carry() << 7
 		if accumulator {
 			cpu.fCarry = (cpu.ac & 0x01) == 1
@@ -488,127 +565,127 @@ func (cpu *Cpu) step() int {
 			cpu.zeroNeg(val)
 		}
 
-	case "BPL":
+	case BPL:
 		if !cpu.fNegative {
 			cpu.relativeJmp()
 		}
-	case "BMI":
+	case BMI:
 		if cpu.fNegative {
 			cpu.relativeJmp()
 		}
-	case "BNE":
+	case BNE:
 		if !cpu.fZero {
 			cpu.relativeJmp()
 		}
-	case "BEQ":
+	case BEQ:
 		if cpu.fZero {
 			cpu.relativeJmp()
 		}
-	case "BCC":
+	case BCC:
 		if !cpu.fCarry {
 			cpu.relativeJmp()
 		}
-	case "BCS":
+	case BCS:
 		if cpu.fCarry {
 			cpu.relativeJmp()
 		}
-	case "BVC":
+	case BVC:
 		if !cpu.fOverflow {
 			cpu.relativeJmp()
 		}
-	case "BVS":
+	case BVS:
 		if cpu.fOverflow {
 			cpu.relativeJmp()
 		}
-	case "JSR":
+	case JSR:
 		cpu.push(uint8((cpu.pc + 2) >> 8))
 		cpu.push(uint8((cpu.pc + 2) & 0xFF))
 		cpu.pc = address
-	case "RTS":
+	case RTS:
 		lo := cpu.pull()
 		hi := cpu.pull()
 		cpu.pc = uint16(hi)<<8 | uint16(lo)
 		cpu.pc += 1
-	case "JMP":
+	case JMP:
 		cpu.pc = address
-	case "STX":
+	case STX:
 		cpu.write(address, cpu.x)
-	case "STY":
+	case STY:
 		cpu.write(address, cpu.y)
-	case "STA":
+	case STA:
 		cpu.write(address, cpu.ac)
-	case "INX":
+	case INX:
 		cpu.x += 1
 		cpu.zeroNeg(cpu.x)
-	case "INY":
+	case INY:
 		cpu.y += 1
 		cpu.zeroNeg(cpu.y)
-	case "DEX":
+	case DEX:
 		cpu.x -= 1
 		cpu.zeroNeg(cpu.x)
-	case "DEY":
+	case DEY:
 		cpu.y -= 1
 		cpu.zeroNeg(cpu.y)
-	case "INC":
+	case INC:
 		temp := cpu.val(immediate, address) + 1
 		cpu.zeroNeg(temp)
 		cpu.write(address, temp)
-	case "DEC":
+	case DEC:
 		temp := cpu.val(immediate, address) - 1
 		cpu.zeroNeg(temp)
 		cpu.write(address, temp)
-	case "TXS":
+	case TXS:
 		cpu.stack = cpu.x
-	case "TSX":
+	case TSX:
 		cpu.x = cpu.stack
 		cpu.zeroNeg(cpu.x)
-	case "TXA":
+	case TXA:
 		cpu.ac = cpu.x
 		cpu.zeroNeg(cpu.ac)
-	case "TAX":
+	case TAX:
 		cpu.x = cpu.ac
 		cpu.zeroNeg(cpu.x)
-	case "TAY":
+	case TAY:
 		cpu.y = cpu.ac
 		cpu.zeroNeg(cpu.y)
-	case "TYA":
+	case TYA:
 		cpu.ac = cpu.y
 		cpu.zeroNeg(cpu.ac)
-	case "EOR":
+	case EOR:
 		cpu.ac = cpu.ac ^ cpu.val(immediate, address)
 		cpu.zeroNeg(cpu.ac)
-	case "ORA":
+	case ORA:
 		cpu.ac = cpu.ac | cpu.val(immediate, address)
 		cpu.zeroNeg(cpu.ac)
-	case "AND":
+	case AND:
 		cpu.ac = cpu.ac & cpu.val(immediate, address)
 		cpu.zeroNeg(cpu.ac)
-	case "BIT":
+	case BIT:
 		val := cpu.val(immediate, address)
 		cpu.fZero = cpu.ac&val == 0
 		cpu.fOverflow = (val>>6)&1 == 1
 		cpu.fNegative = (val>>7)&1 == 1
-	case "PLA":
+	case PLA:
 		cpu.ac = cpu.pull()
 		cpu.zeroNeg(cpu.ac)
-	case "PLP":
+	case PLP:
 		cpu.status(cpu.pull())
 		// cpu.fBreak = false
-	case "PHP":
+	case PHP:
 		// check this behaviour
 		cpu.fBreak = true
 		cpu.push(cpu.getStatus())
 		cpu.fBreak = false
-	case "PHA":
+	case PHA:
 		cpu.push(cpu.ac)
-	case "NOP":
-	case "RTI":
+	case NOP:
+	case RTI:
 		cpu.status(cpu.pull())
 		lo := cpu.pull()
 		hi := cpu.pull()
 		cpu.pc = uint16(hi)<<8 | uint16(lo)
 		// info("\npoping address %04X\n", cpu.pc)
-	case "BRK":
+	case BRK:
 		cpu.push(uint8((cpu.pc + 2) >> 8))
 		cpu.push(uint8((cpu.pc + 2) & 0xFF))
 		cpu.push(cpu.getStatus())

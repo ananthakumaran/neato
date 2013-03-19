@@ -92,7 +92,7 @@ type Ppu struct {
 
 	// CRTL
 	ctrlRegister                 uint8
-	basenameTableAddress         uint16
+	basenameTableBits            uint8
 	incrementBy                  uint8
 	spritePatternTableAddress    uint16
 	backgroundPatterTableAddress uint16
@@ -194,6 +194,8 @@ func (ppu *Ppu) reset() {
 
 	ppu.currentScanlineCycle = 0
 	ppu.scanline = 241
+
+	ppu.scrollBase = 0x2000
 }
 
 func (ppu *Ppu) read(address uint16) byte {
@@ -262,25 +264,23 @@ func (ppu *Ppu) write(address uint16, val byte) {
 		case 0:
 			ppu.address = (uint16(val) << 8) | ppu.address&0x00FF
 			ppu.addrStatus++
+
+			ppu.scrollY = (ppu.scrollY & 0x3F) | (val&0x3)<<6
+			ppu.scrollY = (ppu.scrollY & 0xF8) | (val>>4)&0x3
+
+			ppu.basenameTableBits = (val >> 2) & 0x3
+
 		case 1:
 			ppu.address = uint16(val) | ppu.address&0xFF00
 			ppu.addrStatus = 0
 
-			ppu.x = ((ppu.address & 0x001F) << 3) + ppu.fineX
-			ppu.scrollX = uint8(ppu.x)
-			ppu.y = (((ppu.address >> 5) & 0x001F) << 3) + ((ppu.address >> 12) & 0x7)
-			ppu.scrollY = uint8(ppu.y)
-			switch (ppu.address >> 10) & 0x03 {
-			case 0:
-				ppu.scrollBase = 0x2000
-			case 1:
-				ppu.scrollBase = 0x2400
-			case 2:
-				ppu.scrollBase = 0x2800
-			case 3:
-				ppu.scrollBase = 0x2C00
-			}
-			ppu.basenameTableAddress = ppu.scrollBase
+			ppu.scrollX = (val&0x1F)<<3 + uint8(ppu.fineX)
+			ppu.x = uint16(ppu.scrollX)
+
+			ppu.scrollY = (ppu.scrollY & 0xC7) | (val>>5)<<3
+			ppu.y = uint16(ppu.scrollY)
+
+			ppu.scrollBase = ppu.scrollTable(ppu.basenameTableBits)
 		}
 	case 0x2007:
 		debug(" VRAM %X val %X  ", ppu.address, val)
@@ -354,17 +354,7 @@ func (ppu *Ppu) getStatus() uint8 {
 func (ppu *Ppu) controlRegister1(val uint8) {
 	debug("PPU CTRL %02X ", val)
 	ppu.ctrlRegister = val
-
-	switch val & 0x03 {
-	case 0:
-		ppu.basenameTableAddress = 0x2000
-	case 1:
-		ppu.basenameTableAddress = 0x2400
-	case 2:
-		ppu.basenameTableAddress = 0x2800
-	case 3:
-		ppu.basenameTableAddress = 0x2C00
-	}
+	ppu.basenameTableBits = val & 0x3
 
 	if (val>>2)&1 == 0 {
 		ppu.incrementBy = 1
@@ -580,13 +570,43 @@ func (ppu *Ppu) calculateSprites(screenY uint8) {
 }
 
 // scrolling
+
+func (ppu *Ppu) nameTableBits(scrollBase uint16) uint8 {
+	switch scrollBase {
+	case 0x2000:
+		return 0
+	case 0x2400:
+		return 1
+	case 0x2800:
+		return 2
+	}
+	// case 0x2C00
+	return 3
+}
+
+func (ppu *Ppu) scrollTable(offset uint8) uint16 {
+	switch offset & 0x03 {
+	case 0:
+		return 0x2000
+	case 1:
+		return 0x2400
+	case 2:
+		return 0x2800
+	}
+	// case 3
+	return 0x2C00
+}
+
 func (ppu *Ppu) initScroll() {
 	ppu.y = uint16(ppu.scrollY)
+	ppu.scrollBase = ppu.scrollTable(ppu.basenameTableBits)
 	ppu.incrementScrollY()
 }
 
 func (ppu *Ppu) incrementScrollY() {
-	ppu.scrollBase = ppu.basenameTableAddress
+	ppu.scrollBase = ppu.scrollTable(
+		ppu.nameTableBits(ppu.scrollBase)&0x2 +
+			ppu.basenameTableBits&0x1)
 
 	ppu.x = uint16(ppu.scrollX) - 1
 	ppu.incrementScrollX()

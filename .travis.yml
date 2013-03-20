@@ -1,0 +1,10 @@
+language: go
+
+before_install:
+ - sudo apt-get update -qq
+ - sudo apt-get install -qq libglfw-dev libglew1.6-dev libxrandr-dev
+
+install: export GOPATH=`pwd` && cd src/neato && go get -d -v && go build -v
+
+script:
+ - export GOPATH=`pwd` && cd src/neato && go test -v

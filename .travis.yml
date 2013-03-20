@@ -6,5 +6,4 @@ before_install:
 
 install: export GOPATH=`pwd` && cd src/neato && go get -d -v && go build -v
 
-script:
- - export GOPATH=`pwd` && cd src/neato && go test -v
+script: go test -v

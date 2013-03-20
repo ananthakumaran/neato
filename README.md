@@ -21,6 +21,17 @@ NES emulator
 * A - a
 * B - s
 
+## Installation
+
+### Mac
+
+    $> cd path/to/neato
+    $> export GOPATH=`pwd`
+    $> brew install glew glfw
+    $> cd src/neato
+    $> go get -v
+    $> go build -v
+
 ## Usage
 
     $> ./neato super_mario.nes

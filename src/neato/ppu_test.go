@@ -8,6 +8,10 @@ import (
 	"testing"
 )
 
+const (
+	TEST_MAX_CPU_CYCLES = 2000000
+)
+
 // Hook up gocheck into the "go test" runner.
 func TestPpu(t *testing.T) { TestingT(t) }
 
@@ -43,7 +47,7 @@ func runRom(romPath string, c *C) {
 	rom := LoadRom(romPath)
 	ppu := newPpu(rom)
 	cpu := newCpu(rom, ppu)
-	for i := 0; i < 1000000; i++ {
+	for i := 0; i < TEST_MAX_CPU_CYCLES; i++ {
 		run(cpu)
 	}
 	screenshot := ppu.gui.takeScreenShot()

@@ -1,4 +1,4 @@
-# NEato
+# NEato [![Build Status](https://secure.travis-ci.org/ananthakumaran/neato.png)](http://travis-ci.org/ananthakumaran/neato)
 
 NES emulator
 

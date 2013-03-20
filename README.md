@@ -6,9 +6,10 @@ NES emulator
 
 ## Playable Games
 
-* Super Mario
+* Super Mario Bros
 * Donkey Kong
 * Pacman
+* Ballon Fight
 
 ## Keys
 

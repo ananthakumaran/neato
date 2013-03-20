@@ -33,6 +33,15 @@ NES emulator
     $> go get -v
     $> go build -v
 
+### Ubuntu
+
+    $> cd path/to/neato
+    $> export GOPATH=`pwd`
+    $> sudo apt-get install libglfw-dev libglew1.6-dev
+    $> cd src/neato
+    $> go get -v
+    $> go build -v
+
 ## Usage
 
     $> ./neato super_mario.nes

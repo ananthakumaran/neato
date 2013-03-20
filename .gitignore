@@ -6,7 +6,9 @@ src/neato/suite/*
 pkg/*
 command-line-arguments.test
 src/neato/neato
-src/neato/ppu_tests
+src/neato/ppu_tests/*
+!src/neato/ppu_tests/bin
+!src/neato/ppu_tests/screenshots
 src/github.com/
 src/launchpad.net/
 src/neato/instr_test-v3/

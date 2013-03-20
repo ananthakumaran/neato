@@ -17,15 +17,20 @@ func main() {
 
 	rom := LoadRom(args[1])
 	ppu := newPpu(rom)
+	ppu.gui.init()
 	cpu := newCpu(rom, ppu)
 
 	for {
-		cycles := cpu.step()
-		info(" CYC:%3d SL:%d\n", ppu.currentScanlineCycle, ppu.scanline)
-		cycles = cycles * 3
-		for ; cycles > 0; cycles-- {
-			cpu.ppu.step()
-		}
+		run(cpu)
+	}
+}
+
+func run(cpu *Cpu) {
+	cycles := cpu.step()
+	info(" CYC:%3d SL:%d\n", cpu.ppu.currentScanlineCycle, cpu.ppu.scanline)
+	cycles = cycles * 3
+	for ; cycles > 0; cycles-- {
+		cpu.ppu.step()
 	}
 }
 

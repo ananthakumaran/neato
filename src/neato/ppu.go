@@ -455,6 +455,7 @@ func (ppu *Ppu) spriteColorIndex(x, y int, backgroundColorIndex uint8) uint8 {
 	sprite := ppu.sprites[x]
 
 	if !sprite.visible ||
+		!ppu.displaySprite ||
 		(sprite.behindBackground && backgroundColorIndex%4 != 0) ||
 		(!ppu.showclipSprite && x <= 7) {
 		index = ppu.vram.read(0x3F00 + uint16(backgroundColorIndex))
@@ -510,61 +511,68 @@ func (ppu *Ppu) oamGetX(index uint8) byte {
 
 func (ppu *Ppu) calculateSprites(screenY uint8) {
 	ppu.sprites = make([]Sprite, SCREEN_WIDTH)
+	found := 0
 
-	if ppu.displaySprite {
-		for i := uint8(0); i < 64; i++ {
-			if ppu.spriteSize == 8 {
-				spriteTopY := uint8(ppu.oamGetY(i)) - 1
-				inRange := false
-				yOffset := uint8(0)
+	for i := uint8(0); i < 64; i++ {
+		if ppu.spriteSize == 8 {
+			spriteTopY := uint8(ppu.oamGetY(i)) - 1
+			inRange := false
+			yOffset := uint8(0)
 
-				if screenY >= spriteTopY {
-					yOffset = screenY - spriteTopY
-					if yOffset < 8 {
-						inRange = true
+			if screenY >= spriteTopY {
+				yOffset = screenY - spriteTopY
+				if yOffset < 8 {
+					inRange = true
+
+					if spriteTopY < 239 {
+						found++
 					}
 				}
-
-				if inRange {
-					spriteLetfX := ppu.oamGetX(i)
-					patternTileNumber := ppu.oamGetTile(i)
-
-					if yOffset >= 8 {
-						yOffset -= 8
-						patternTileNumber++
-					}
-
-					attributeByte := ppu.oamGetAttribute(i)
-					flippedHorizontal := (attributeByte>>6)&1 == 1
-					flippedVertical := (attributeByte>>7)&1 == 1
-					attributeColorIndex := (attributeByte << 6) >> 4
-
-					if flippedVertical {
-						yOffset = 8 - yOffset - 1
-					}
-
-					for j := uint8(0); j < 8 && (uint16(j)+uint16(spriteLetfX) < SCREEN_WIDTH); j++ {
-						x := j
-						if flippedHorizontal {
-							x = 8 - x - 1
-						}
-
-						// todo sprite priority
-						if !ppu.sprites[spriteLetfX+j].visible {
-							patternColorIndex := ppu.patternColorIndex(int(x), int(yOffset), ppu.spritePatternTableAddress, patternTileNumber)
-							if patternColorIndex != 0 {
-								sprite := &ppu.sprites[spriteLetfX+j]
-								sprite.visible = true
-								sprite.paletteIndex = patternColorIndex + attributeColorIndex
-								sprite.behindBackground = attributeByte>>5&1 == 1
-							}
-						}
-
-					}
-				}
-			} else {
-				fatal("8x16 sprite")
 			}
+
+			if inRange {
+				spriteLetfX := ppu.oamGetX(i)
+				patternTileNumber := ppu.oamGetTile(i)
+
+				if yOffset >= 8 {
+					yOffset -= 8
+					patternTileNumber++
+				}
+
+				attributeByte := ppu.oamGetAttribute(i)
+				flippedHorizontal := (attributeByte>>6)&1 == 1
+				flippedVertical := (attributeByte>>7)&1 == 1
+				attributeColorIndex := (attributeByte << 6) >> 4
+
+				if flippedVertical {
+					yOffset = 8 - yOffset - 1
+				}
+
+				for j := uint8(0); j < 8 && (uint16(j)+uint16(spriteLetfX) < SCREEN_WIDTH); j++ {
+					x := j
+					if flippedHorizontal {
+						x = 8 - x - 1
+					}
+
+					// todo sprite priority
+					if !ppu.sprites[spriteLetfX+j].visible {
+						patternColorIndex := ppu.patternColorIndex(int(x), int(yOffset), ppu.spritePatternTableAddress, patternTileNumber)
+						if patternColorIndex != 0 {
+							sprite := &ppu.sprites[spriteLetfX+j]
+							sprite.visible = true
+							sprite.paletteIndex = patternColorIndex + attributeColorIndex
+							sprite.behindBackground = attributeByte>>5&1 == 1
+						}
+					}
+
+				}
+			}
+		} else {
+			fatal("8x16 sprite")
+		}
+
+		if found > 8 && ppu.maskRegister != 0 {
+			ppu.fSpriteOverflow = true
 		}
 	}
 }

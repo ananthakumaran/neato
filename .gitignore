@@ -18,3 +18,4 @@ blargg_ppu_tests_*
 src/code.google.com/
 src/neato/cpu_tests/ascii-src/
 src/neato/cpu_tests/start
+src/neato/sprite_overflow_tests/*

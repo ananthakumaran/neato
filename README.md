@@ -10,6 +10,7 @@ NES emulator
 * Donkey Kong
 * Pacman
 * Ballon Fight
+* Contra
 
 ## Keys
 

@@ -20,7 +20,10 @@ type PpuSuite struct{}
 var _ = Suite(&PpuSuite{})
 
 func (s *PpuSuite) TestVblank(c *C) {
-	ppu := newPpu(&Rom{})
+	prgRoms := make([][]byte, 1)
+	prgRoms[0] = make([]byte, 0x4000)
+	rom := &Rom{PrgRomCount: 1, PrgRoms: prgRoms}
+	ppu := newPpu(newNROM(rom))
 	c.Check(ppu.getStatus(), Equals, uint8(0))
 	c.Check(ppu.read(0x2002), Equals, uint8(0))
 	ppu.fVerticalBlank = true

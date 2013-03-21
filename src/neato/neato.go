@@ -15,10 +15,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	rom := LoadRom(args[1])
-	ppu := newPpu(rom)
+	mapper := LoadRom(args[1])
+	ppu := newPpu(mapper)
 	ppu.gui.init()
-	cpu := newCpu(rom, ppu)
+	cpu := newCpu(mapper, ppu)
 
 	for {
 		run(cpu)

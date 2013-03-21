@@ -217,7 +217,7 @@ var AddressingMode = [0x100]uint8{
 	IMP, ABSY, ABSX, ABSX, ABSX}
 
 type Cpu struct {
-	rom      *Rom
+	mapper   Mapper
 	ppu      *Ppu
 	joystick *Joystick
 
@@ -253,21 +253,14 @@ type Cpu struct {
 	respectDecimalMode bool
 }
 
-func newCpu(rom *Rom, ppu *Ppu) *Cpu {
+func newCpu(mapper Mapper, ppu *Ppu) *Cpu {
 	cpu := Cpu{}
-	cpu.rom = rom
+	cpu.mapper = mapper
 	cpu.joystick = newJoystick()
 	cpu.ram = newMemory(0xFFFF)
-	cpu.ram.copy(0x8000, 0xC000, rom.PrgRoms[0])
-
-	switch rom.PrgRomCount {
-	case 1:
-		cpu.ram.copy(0xC000, 0x10000, rom.PrgRoms[0])
-	case 2:
-		cpu.ram.copy(0xC000, 0x10000, rom.PrgRoms[1])
-	default:
-		fatal("uknown prg rom count", rom.PrgRomCount)
-	}
+	// program
+	cpu.ram.readCallback(0x8000, 0xFFFF, func(addr uint16) byte { return mapper.PrgRead(addr - 0x8000) })
+	cpu.ram.writeCallback(0x8000, 0xFFFF, func(addr uint16, val byte) { mapper.PrgWrite(addr-0x8000, val) })
 
 	// IO registers
 	cpu.ram.readCallback(0x2000, 0x2007, func(address uint16) byte { return cpu.ppu.read(address) })

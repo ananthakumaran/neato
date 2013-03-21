@@ -12,7 +12,106 @@ type Rom struct {
 	mirroring   int
 }
 
-func LoadRom(filename string) *Rom {
+type Mapper interface {
+	PrgRead(uint16) byte
+	PrgWrite(uint16, byte)
+	ChrRead(uint16) byte
+	ChrWrite(uint16, byte)
+	Mirroring() int
+}
+
+type NROM struct {
+	rom *Rom
+	prg []byte
+	chr []byte
+}
+
+func newNROM(rom *Rom) *NROM {
+	nrom := &NROM{rom: rom}
+	nrom.prg = make([]byte, 0x8000)
+	copy(nrom.prg[0x0:0x4000], rom.PrgRoms[0])
+
+	switch rom.PrgRomCount {
+	case 1:
+		copy(nrom.prg[0x4000:0x8000], rom.PrgRoms[0])
+	case 2:
+		copy(nrom.prg[0x4000:0x8000], rom.PrgRoms[1])
+	default:
+		fatal("uknown prg rom count", rom.PrgRomCount)
+	}
+
+	nrom.chr = make([]byte, 0x2000)
+	switch rom.ChrRomCount {
+	case 0: // no chr
+	case 1:
+		copy(nrom.chr, rom.ChrRoms[0])
+	}
+
+	return nrom
+}
+
+func (nrom *NROM) PrgRead(address uint16) byte {
+	return nrom.prg[address]
+}
+
+func (nrom *NROM) PrgWrite(address uint16, val byte) {
+}
+
+func (nrom *NROM) ChrRead(address uint16) byte {
+	return nrom.chr[address]
+}
+
+func (nrom *NROM) ChrWrite(address uint16, val byte) {
+	nrom.chr[address] = val
+}
+
+func (nrom *NROM) Mirroring() int {
+	return nrom.rom.mirroring
+}
+
+type UxROM struct {
+	rom         *Rom
+	chr         []byte
+	currentBank uint8
+}
+
+func newUxROM(rom *Rom) *UxROM {
+	uxrom := &UxROM{rom: rom}
+
+	uxrom.chr = make([]byte, 0x2000)
+	switch rom.ChrRomCount {
+	case 0: // no chr
+	case 1:
+		copy(uxrom.chr, rom.ChrRoms[0])
+	}
+
+	return uxrom
+}
+
+func (uxrom *UxROM) PrgRead(address uint16) byte {
+	if address >= 0x4000 {
+		return uxrom.rom.PrgRoms[uxrom.rom.PrgRomCount-1][address-0x4000]
+	}
+	return uxrom.rom.PrgRoms[uxrom.currentBank][address]
+}
+
+func (uxrom *UxROM) PrgWrite(address uint16, val byte) {
+	uxrom.currentBank = uint8(val) & uint8(uxrom.rom.PrgRomCount-1)
+}
+
+func (uxrom *UxROM) ChrRead(address uint16) byte {
+	return uxrom.chr[address]
+}
+
+func (uxrom *UxROM) ChrWrite(address uint16, val byte) {
+	uxrom.chr[address] = val
+}
+
+func (uxrom *UxROM) Mirroring() int {
+	return uxrom.rom.mirroring
+}
+
+func LoadRom(filename string) Mapper {
 	rom := Rom{}
 	file, err := os.Open(filename)
 	if err != nil {
@@ -53,10 +152,6 @@ func LoadRom(filename string) *Rom {
 
 	debug("mapper %d", mapper)
 
-	if mapper != 0 {
-		fatal("unimplemented mapper", mapper)
-	}
-
 	debug("control")
 
 	rom.PrgRoms = make([][]byte, rom.PrgRomCount)
@@ -77,5 +172,13 @@ func LoadRom(filename string) *Rom {
 		}
 	}
 
-	return &rom
+	switch mapper {
+	case 0:
+		return newNROM(&rom)
+	case 2:
+		return newUxROM(&rom)
+	default:
+		fatal("unimplemented mapper", mapper)
+	}
+	return nil
 }

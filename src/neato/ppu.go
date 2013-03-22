@@ -518,7 +518,7 @@ func (ppu *Ppu) calculateSprites(screenY uint8) {
 	found := 0
 
 	for i := uint8(0); i < 64; i++ {
-		spriteTopY := uint8(ppu.oamGetY(i)) - 1
+		spriteTopY := uint8(ppu.oamGetY(i)) + 2
 		inRange := false
 		yOffset := uint8(0)
 
@@ -611,7 +611,7 @@ func (ppu *Ppu) scrollTable(offset uint8) uint16 {
 }
 
 func (ppu *Ppu) initScroll() {
-	ppu.y = uint16(ppu.scrollY)
+	ppu.y = uint16(ppu.scrollY) - 3
 	ppu.scrollBase = ppu.scrollTable(ppu.basenameTableBits)
 	ppu.incrementScrollY()
 }
@@ -688,21 +688,25 @@ func (ppu *Ppu) step() {
 		}
 		ppu.currentScanlineCycle = 0
 
-		if ppu.scanline == 241 {
-			ppu.startVblank()
-		}
+	}
 
-		if ppu.scanline == -1 {
-			ppu.fVerticalBlank = false
-			ppu.fSpriteOverflow = false
-			ppu.fSpritZeroHit = false
-			ppu.initScroll()
-		}
+	if ppu.scanline == 241 && ppu.currentScanlineCycle == 1 {
+		ppu.startVblank()
+	}
 
-		if ppu.scanline >= -1 && ppu.scanline < SCREEN_HEIGHT {
-			ppu.calculateSprites(uint8(ppu.scanline + 1))
-			ppu.incrementScrollY()
-		}
+	if ppu.scanline == -1 && ppu.currentScanlineCycle == 0 {
+		ppu.initScroll()
+	}
+
+	if ppu.scanline == -1 && ppu.currentScanlineCycle == 1 {
+		ppu.fVerticalBlank = false
+		ppu.fSpriteOverflow = false
+		ppu.fSpritZeroHit = false
+	}
+
+	if ppu.scanline >= -1 && ppu.scanline < SCREEN_HEIGHT && ppu.currentScanlineCycle == 0 {
+		ppu.calculateSprites(uint8(ppu.scanline + 1))
+		ppu.incrementScrollY()
 	}
 
 	if ppu.scanline >= 0 && ppu.scanline < SCREEN_HEIGHT {

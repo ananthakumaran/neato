@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 )
 
@@ -136,23 +137,9 @@ func LoadRom(filename string) Mapper {
 	debug("header %v\n", header)
 
 	rom.PrgRomCount = int(header[4])
-	debug("prg count %d\n", rom.PrgRomCount)
 	rom.ChrRomCount = int(header[5])
-	debug("chr count %d\n", rom.ChrRomCount)
 
 	mapper := header[6]>>4 | (header[7] & 0xF0)
-
-	if header[6]&0x01 == 1 {
-		rom.mirroring = VERTICAL_MIRRORING
-		debug("mirroring vertical")
-	} else {
-		rom.mirroring = HORIZONTAL_MIRRORING
-		debug("mirroring horizontal")
-	}
-
-	debug("mapper %d", mapper)
-
-	debug("control")
 
 	rom.PrgRoms = make([][]byte, rom.PrgRomCount)
 	for i := 0; i < rom.PrgRomCount; i++ {
@@ -170,6 +157,18 @@ func LoadRom(filename string) Mapper {
 		if err != nil || count != 0x2000 {
 			fatal("can't read chr rom:", i+1)
 		}
+	}
+
+	fmt.Printf("PRG ROM: %d x 16KiB\n", rom.PrgRomCount)
+	fmt.Printf("CHR ROM: %d x  8KiB\n", rom.ChrRomCount)
+	fmt.Printf("Mapper : #%d\n", mapper)
+
+	if header[6]&0x01 == 1 {
+		rom.mirroring = VERTICAL_MIRRORING
+		fmt.Println("Mirroring: Vertical")
+	} else {
+		rom.mirroring = HORIZONTAL_MIRRORING
+		fmt.Println("Mirroring: Horizontal")
 	}
 
 	switch mapper {

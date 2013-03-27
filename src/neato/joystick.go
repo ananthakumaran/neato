@@ -17,13 +17,13 @@ type Joystick struct {
 	stickTwo int
 }
 
-func newJoystick() *Joystick {
+func NewJoystick() *Joystick {
 	joystick := Joystick{}
 	glfw.SetKeyCallback(func(key, state int) { joystick.onKey(key, state) })
 	return &joystick
 }
 
-func (joystick *Joystick) read(address uint16) byte {
+func (joystick *Joystick) Read(address uint16) byte {
 	data := 0
 	switch address {
 	case 0x4016:

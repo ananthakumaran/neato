@@ -16,9 +16,9 @@ func main() {
 	}
 
 	mapper := LoadRom(args[1])
-	ppu := newPpu(mapper)
-	ppu.gui.init()
-	cpu := newCpu(mapper, ppu)
+	ppu := NewPpu(mapper)
+	ppu.gui.Init()
+	cpu := NewCpu(mapper, ppu)
 
 	for {
 		run(cpu)
@@ -26,11 +26,11 @@ func main() {
 }
 
 func run(cpu *Cpu) {
-	cycles := cpu.step()
+	cycles := cpu.Step()
 	info(" CYC:%3d SL:%d\n", cpu.ppu.currentScanlineCycle, cpu.ppu.scanline)
 	cycles = cycles * 3
 	for ; cycles > 0; cycles-- {
-		cpu.ppu.step()
+		cpu.ppu.Step()
 	}
 }
 

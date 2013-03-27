@@ -23,12 +23,12 @@ func (s *PpuSuite) TestVblank(c *C) {
 	prgRoms := make([][]byte, 1)
 	prgRoms[0] = make([]byte, 0x4000)
 	rom := &Rom{PrgRomCount: 1, PrgRoms: prgRoms}
-	ppu := newPpu(newNROM(rom))
+	ppu := NewPpu(newNROM(rom))
 	c.Check(ppu.getStatus(), Equals, uint8(0))
-	c.Check(ppu.read(0x2002), Equals, uint8(0))
+	c.Check(ppu.Read(0x2002), Equals, uint8(0))
 	ppu.fVerticalBlank = true
-	c.Check(ppu.read(0x2002), Equals, uint8(0x80))
-	c.Check(ppu.read(0x2002), Equals, uint8(0x00))
+	c.Check(ppu.Read(0x2002), Equals, uint8(0x80))
+	c.Check(ppu.Read(0x2002), Equals, uint8(0x00))
 	c.Check(ppu.fVerticalBlank, Equals, false)
 	c.Check(ppu.getStatus(), Equals, uint8(0x00))
 }
@@ -48,12 +48,12 @@ func screenshotPath(romPath string) string {
 
 func runRom(romPath string, c *C) {
 	rom := LoadRom(romPath)
-	ppu := newPpu(rom)
-	cpu := newCpu(rom, ppu)
+	ppu := NewPpu(rom)
+	cpu := NewCpu(rom, ppu)
 	for i := 0; i < TEST_MAX_CPU_CYCLES; i++ {
 		run(cpu)
 	}
-	screenshot := ppu.gui.takeScreenShot()
+	screenshot := ppu.gui.TakeScreenShot()
 
 	path := screenshotPath(romPath)
 	previous, err := os.Open(path)

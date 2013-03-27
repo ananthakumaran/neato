@@ -9,7 +9,7 @@ type Memory struct {
 	writeCallbacks []*writeCallbackFunc
 }
 
-func newMemory(size uint16) *Memory {
+func NewMemory(size uint16) *Memory {
 	memory := Memory{}
 	memory.store = make([]byte, uint32(size)+1)
 	memory.readCallbacks = make([]*readCallbackFunc, uint32(size)+1)
@@ -17,14 +17,14 @@ func newMemory(size uint16) *Memory {
 	return &memory
 }
 
-func (memory *Memory) read(address uint16) byte {
+func (memory *Memory) Read(address uint16) byte {
 	if callback := memory.readCallbacks[address]; callback != nil {
 		return (*callback)(address)
 	}
 	return memory.store[address]
 }
 
-func (memory *Memory) write(address uint16, value uint8) {
+func (memory *Memory) Write(address uint16, value uint8) {
 	if callback := memory.writeCallbacks[address]; callback != nil {
 		(*callback)(address, value)
 	} else {
@@ -32,24 +32,24 @@ func (memory *Memory) write(address uint16, value uint8) {
 	}
 }
 
-func (memory *Memory) copy(start, end int, from []byte) {
+func (memory *Memory) Copy(start, end int, from []byte) {
 	copy(memory.store[start:end], from)
 }
 
-func (memory *Memory) readCallback(start, end uint16, callback readCallbackFunc) {
+func (memory *Memory) ReadCallback(start, end uint16, callback readCallbackFunc) {
 
 	for i := uint32(start); i <= uint32(end); i++ {
 		memory.readCallbacks[i] = &callback
 	}
 }
 
-func (memory *Memory) writeCallback(start, end uint16, callback writeCallbackFunc) {
+func (memory *Memory) WriteCallback(start, end uint16, callback writeCallbackFunc) {
 	for i := uint32(start); i <= uint32(end); i++ {
 		memory.writeCallbacks[i] = &callback
 	}
 }
 
-func (memory *Memory) mirror(start, end, mstart, mend uint16) {
+func (memory *Memory) Mirror(start, end, mstart, mend uint16) {
 	interval := uint32(end - start)
 	tempStart := uint32(mstart)
 
@@ -57,13 +57,13 @@ func (memory *Memory) mirror(start, end, mstart, mend uint16) {
 		tempMirrorStart := uint16(tempStart)
 		tempEnd := tempStart + interval
 
-		memory.readCallback(tempMirrorStart, uint16(tempEnd), func(address uint16) byte {
+		memory.ReadCallback(tempMirrorStart, uint16(tempEnd), func(address uint16) byte {
 			//info("mirror read Original %04X destination %04X\n", address, start+address-tempMirrorStart)
-			return memory.read(start + address - tempMirrorStart)
+			return memory.Read(start + address - tempMirrorStart)
 		})
 
-		memory.writeCallback(tempMirrorStart, uint16(tempEnd), (func(address uint16, val byte) {
-			memory.write(start+address-tempMirrorStart, val)
+		memory.WriteCallback(tempMirrorStart, uint16(tempEnd), (func(address uint16, val byte) {
+			memory.Write(start+address-tempMirrorStart, val)
 		}))
 	}
 

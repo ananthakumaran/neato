@@ -17,7 +17,7 @@ func fileDir() string {
 
 func newTestCpu(filename string) *Cpu {
 	cpu := Cpu{}
-	cpu.ram = newMemory(0xFFFF)
+	cpu.ram = NewMemory(0xFFFF)
 	cpu.printer = petascii.New()
 	cpu.respectDecimalMode = true
 	cpu.loadFile(filename)
@@ -42,13 +42,13 @@ func (cpu *Cpu) loadFile(filename string) {
 		fatal("invalid file")
 	}
 
-	cpu.ram.write(0x0002, 0x00)
-	cpu.ram.write(0xA002, 0x00)
-	cpu.ram.write(0xA003, 0x80)
-	cpu.ram.write(0xFFFE, 0x48)
-	cpu.ram.write(0xFFFF, 0xFF)
-	cpu.ram.write(0x01FE, 0xFF)
-	cpu.ram.write(0x01FF, 0x7F)
+	cpu.ram.Write(0x0002, 0x00)
+	cpu.ram.Write(0xA002, 0x00)
+	cpu.ram.Write(0xA003, 0x80)
+	cpu.ram.Write(0xFFFE, 0x48)
+	cpu.ram.Write(0xFFFF, 0xFF)
+	cpu.ram.Write(0x01FE, 0xFF)
+	cpu.ram.Write(0x01FF, 0x7F)
 
 	// FF48  48        PHA
 	// FF49  8A        TXA
@@ -62,7 +62,7 @@ func (cpu *Cpu) loadFile(filename string) {
 	// FF55  6C 16 03  JMP    ($0316)
 	// FF58  6C 14 03  JMP    ($0314)
 
-	cpu.ram.copy(0xFF48, 0xFF5A, []byte{0x48, 0x8A, 0x48, 0x98, 0x48, 0xBA,
+	cpu.ram.Copy(0xFF48, 0xFF5A, []byte{0x48, 0x8A, 0x48, 0x98, 0x48, 0xBA,
 		0xBD, 0x04, 0x01, 0x29, 0x10, 0xF0,
 		0x03, 0x6C, 0x16, 0x03, 0x6C, 0x14, 0x03})
 
@@ -74,7 +74,7 @@ func (cpu *Cpu) loadFile(filename string) {
 func (cpu *Cpu) handleTestTraps(t *testing.T) bool {
 	switch cpu.pc {
 	case 0xFFD2:
-		cpu.ram.write(0x030C, 0)
+		cpu.ram.Write(0x030C, 0)
 		cpu.printer.Print(cpu.ac)
 		lo := cpu.pull()
 		hi := cpu.pull()
@@ -126,6 +126,6 @@ func runTestFrom(t *testing.T, path string) {
 			break
 		}
 
-		cpu.step()
+		cpu.Step()
 	}
 }

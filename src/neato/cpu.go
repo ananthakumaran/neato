@@ -253,26 +253,26 @@ type Cpu struct {
 	respectDecimalMode bool
 }
 
-func newCpu(mapper Mapper, ppu *Ppu) *Cpu {
+func NewCpu(mapper Mapper, ppu *Ppu) *Cpu {
 	cpu := Cpu{}
 	cpu.mapper = mapper
-	cpu.joystick = newJoystick()
-	cpu.ram = newMemory(0xFFFF)
+	cpu.joystick = NewJoystick()
+	cpu.ram = NewMemory(0xFFFF)
 	// program
-	cpu.ram.readCallback(0x8000, 0xFFFF, func(addr uint16) byte { return mapper.PrgRead(addr - 0x8000) })
-	cpu.ram.writeCallback(0x8000, 0xFFFF, func(addr uint16, val byte) { mapper.PrgWrite(addr-0x8000, val) })
+	cpu.ram.ReadCallback(0x8000, 0xFFFF, func(addr uint16) byte { return mapper.PrgRead(addr - 0x8000) })
+	cpu.ram.WriteCallback(0x8000, 0xFFFF, func(addr uint16, val byte) { mapper.PrgWrite(addr-0x8000, val) })
 
 	// IO registers
-	cpu.ram.readCallback(0x2000, 0x2007, func(address uint16) byte { return cpu.ppu.read(address) })
-	cpu.ram.writeCallback(0x2000, 0x2007, func(address uint16, val byte) { cpu.ppu.write(address, val) })
-	cpu.ram.readCallback(0x4014, 0x4014, func(address uint16) byte { return cpu.ppu.read(address) })
-	cpu.ram.writeCallback(0x4014, 0x4014, func(address uint16, val byte) { cpu.ppu.write(address, val) })
+	cpu.ram.ReadCallback(0x2000, 0x2007, func(address uint16) byte { return cpu.ppu.Read(address) })
+	cpu.ram.WriteCallback(0x2000, 0x2007, func(address uint16, val byte) { cpu.ppu.Write(address, val) })
+	cpu.ram.ReadCallback(0x4014, 0x4014, func(address uint16) byte { return cpu.ppu.Read(address) })
+	cpu.ram.WriteCallback(0x4014, 0x4014, func(address uint16, val byte) { cpu.ppu.Write(address, val) })
 
-	cpu.ram.readCallback(0x4016, 0x4017, func(address uint16) byte { return cpu.joystick.read(address) })
-	cpu.ram.writeCallback(0x4016, 0x4017, func(address uint16, val byte) { cpu.joystick.write(address, val) })
+	cpu.ram.ReadCallback(0x4016, 0x4017, func(address uint16) byte { return cpu.joystick.Read(address) })
+	cpu.ram.WriteCallback(0x4016, 0x4017, func(address uint16, val byte) { cpu.joystick.write(address, val) })
 
-	cpu.ram.mirror(0x0000, 0x07FF, 0x0800, 0x1FFF)
-	cpu.ram.mirror(0x2000, 0x2007, 0x2008, 0x3FFF)
+	cpu.ram.Mirror(0x0000, 0x07FF, 0x0800, 0x1FFF)
+	cpu.ram.Mirror(0x2000, 0x2007, 0x2008, 0x3FFF)
 
 	cpu.ppu = ppu
 	ppu.cpu = &cpu
@@ -281,7 +281,7 @@ func newCpu(mapper Mapper, ppu *Ppu) *Cpu {
 	return &cpu
 }
 
-func (cpu *Cpu) step() int {
+func (cpu *Cpu) Step() int {
 
 	cpu.handleInterrupt()
 
@@ -406,7 +406,7 @@ func (cpu *Cpu) step() int {
 		address = uint16(int(cpu.pc)+int(int8(cpu.read(cpu.pc+1)))) + uint16(Bytes[ir])
 		// info("$%04X                       ", address)
 	default:
-		fatal("unknown addressing mode not implemented %x", AddressingMode[ir])
+		fatal("unknown addressing mode not implemented", AddressingMode[ir])
 	}
 
 	// info("A:%02X X:%02X Y:%02X P:%02X SP:%02X", cpu.ac, cpu.x, cpu.y, cpu.getStatus(), cpu.stack)
@@ -697,14 +697,14 @@ func (cpu *Cpu) step() int {
 	//fmt.Printf("opcode %s ir 0x%X mode %s cycles %d  byte %d addr 0x%X \n ", Opcodes[ir], ir, AddressingMode[ir], Cycles[ir], Bytes[ir], address)
 	//cpu.inspect()
 	if cpu.cycles <= 0 {
-		fatal("invalid cycle %d", cpu.cycles)
+		fatal("invalid cycle", cpu.cycles)
 	}
 
 	return cpu.cycles
 }
 
 func (cpu *Cpu) read(address uint16) byte {
-	return cpu.ram.read(address)
+	return cpu.ram.Read(address)
 
 }
 
@@ -714,12 +714,12 @@ func (cpu *Cpu) dummyRead(address uint16) byte {
 }
 
 func (cpu *Cpu) write(address uint16, val uint8) {
-	cpu.ram.write(address, val)
+	cpu.ram.Write(address, val)
 }
 
 func (cpu *Cpu) reset() {
 	// OxFFFC & 0xFFFD contains the intital PC register
-	cpu.pc = (uint16(cpu.ram.read(0xFFFD)) << 8) | uint16(cpu.ram.read(0xFFFC))
+	cpu.pc = (uint16(cpu.ram.Read(0xFFFD)) << 8) | uint16(cpu.ram.Read(0xFFFC))
 	cpu.stack = 0xFD
 	cpu.fInterruptDisable = true
 	//cpu.pc = 0xC000
@@ -848,7 +848,7 @@ func (cpu *Cpu) handleInterrupt() {
 
 			}
 		case NMI:
-			if cpu.ppu.nmiOnVBlank {
+			if cpu.ppu.NmiOnVBlank {
 				// info("vblank on nmi")
 				// info("\npushing address %04X\n", cpu.pc+1)
 				cpu.push(uint8((cpu.pc) >> 8))

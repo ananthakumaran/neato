@@ -20,7 +20,7 @@ const (
 	FPS_THROTTLE_FREQUENCY = 15.0
 )
 
-func newGui() *Gui {
+func NewGui() *Gui {
 	gui := Gui{}
 	gui.pixels = make([]byte, SCREEN_WIDTH*SCREEN_HEIGHT*3)
 	gui.lastMeasured = glfw.Time()
@@ -28,7 +28,7 @@ func newGui() *Gui {
 	return &gui
 }
 
-func (gui *Gui) init() {
+func (gui *Gui) Init() {
 	if err := glfw.Init(); err != nil {
 		fatal("can't init glfw", err)
 	}
@@ -44,7 +44,7 @@ func (gui *Gui) init() {
 	gui.enabled = true
 }
 
-func (gui *Gui) close() {
+func (gui *Gui) Close() {
 	glfw.CloseWindow()
 	glfw.Terminate()
 }
@@ -91,7 +91,7 @@ func (gui *Gui) throttle() {
 
 }
 
-func (gui *Gui) takeScreenShot() image.Image {
+func (gui *Gui) TakeScreenShot() image.Image {
 	screenshot := image.NewRGBA(image.Rect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT))
 	for y := 0; y < SCREEN_HEIGHT; y++ {
 		for x := 0; x < SCREEN_WIDTH; x++ {

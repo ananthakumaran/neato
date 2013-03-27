@@ -97,7 +97,7 @@ type Ppu struct {
 	spritePatternTableAddress    uint16
 	backgroundPatterTableAddress uint16
 	spriteSize                   uint8
-	nmiOnVBlank                  bool
+	NmiOnVBlank                  bool
 
 	// MASK
 	maskRegister       uint8
@@ -146,35 +146,35 @@ type Sprite struct {
 	paletteIndex     uint8
 }
 
-func newPpu(mapper Mapper) *Ppu {
+func NewPpu(mapper Mapper) *Ppu {
 	ppu := Ppu{}
-	ppu.gui = newGui()
+	ppu.gui = NewGui()
 	ppu.mapper = mapper
-	ppu.vram = newMemory(0xFFFF)
+	ppu.vram = NewMemory(0xFFFF)
 
-	ppu.vram.readCallback(0x0000, 0x1FFF, func(addr uint16) byte { return mapper.ChrRead(addr) })
-	ppu.vram.writeCallback(0x0000, 0x1FFF, func(addr uint16, val byte) { mapper.ChrWrite(addr, val) })
+	ppu.vram.ReadCallback(0x0000, 0x1FFF, func(addr uint16) byte { return mapper.ChrRead(addr) })
+	ppu.vram.WriteCallback(0x0000, 0x1FFF, func(addr uint16, val byte) { mapper.ChrWrite(addr, val) })
 
-	ppu.vram.mirror(0x2000, 0x2EFF, 0x3000, 0x3EFF)
-	ppu.vram.mirror(0x3F00, 0x3F1F, 0x3F20, 0x3FFF)
-	ppu.vram.mirror(0x0000, 0x3FFF, 0x4000, 0xFFFF)
+	ppu.vram.Mirror(0x2000, 0x2EFF, 0x3000, 0x3EFF)
+	ppu.vram.Mirror(0x3F00, 0x3F1F, 0x3F20, 0x3FFF)
+	ppu.vram.Mirror(0x0000, 0x3FFF, 0x4000, 0xFFFF)
 
 	switch mapper.Mirroring() {
 	case VERTICAL_MIRRORING:
-		ppu.vram.mirror(0x2000, 0x23FF, 0x2800, 0x2BFF)
-		ppu.vram.mirror(0x2400, 0x27FF, 0x2C00, 0x2FFF)
+		ppu.vram.Mirror(0x2000, 0x23FF, 0x2800, 0x2BFF)
+		ppu.vram.Mirror(0x2400, 0x27FF, 0x2C00, 0x2FFF)
 	case HORIZONTAL_MIRRORING:
-		ppu.vram.mirror(0x2000, 0x23FF, 0x2400, 0x27FF)
-		ppu.vram.mirror(0x2800, 0x2BFF, 0x2C00, 0x2FFF)
+		ppu.vram.Mirror(0x2000, 0x23FF, 0x2400, 0x27FF)
+		ppu.vram.Mirror(0x2800, 0x2BFF, 0x2C00, 0x2FFF)
 	}
 
 	// pallete mirroring
-	ppu.vram.mirror(0x3F10, 0x3F10, 0x3F00, 0x3F00)
-	ppu.vram.mirror(0x3F14, 0x3F14, 0x3F04, 0x3F04)
-	ppu.vram.mirror(0x3F18, 0x3F18, 0x3F08, 0x3F08)
-	ppu.vram.mirror(0x3F1C, 0x3F1C, 0x3F0C, 0x3F0C)
+	ppu.vram.Mirror(0x3F10, 0x3F10, 0x3F00, 0x3F00)
+	ppu.vram.Mirror(0x3F14, 0x3F14, 0x3F04, 0x3F04)
+	ppu.vram.Mirror(0x3F18, 0x3F18, 0x3F08, 0x3F08)
+	ppu.vram.Mirror(0x3F1C, 0x3F1C, 0x3F0C, 0x3F0C)
 
-	ppu.oamRam = newMemory(0xFF)
+	ppu.oamRam = NewMemory(0xFF)
 	ppu.reset()
 
 	return &ppu
@@ -193,7 +193,7 @@ func (ppu *Ppu) reset() {
 	ppu.scrollBase = 0x2000
 }
 
-func (ppu *Ppu) read(address uint16) byte {
+func (ppu *Ppu) Read(address uint16) byte {
 	debug("R %X\n", address)
 
 	switch address {
@@ -207,16 +207,16 @@ func (ppu *Ppu) read(address uint16) byte {
 		ppu.resetLatch()
 		return status
 	case 0x2004:
-		return ppu.oamRam.read(uint16(ppu.oamAddress))
+		return ppu.oamRam.Read(uint16(ppu.oamAddress))
 	case 0x2007:
 		address := ppu.address
 		ppu.address += uint16(ppu.incrementBy)
 		buffered := ppu.vramReadBuffer
 		if address >= 0x3F00 && address <= 0x3FFF {
-			ppu.vramReadBuffer = ppu.vram.read(address - 0x1000)
-			return ppu.vram.read(address)
+			ppu.vramReadBuffer = ppu.vram.Read(address - 0x1000)
+			return ppu.vram.Read(address)
 		}
-		ppu.vramReadBuffer = ppu.vram.read(address)
+		ppu.vramReadBuffer = ppu.vram.Read(address)
 		return buffered
 	default:
 		info("READ unimplemented %X", address)
@@ -226,7 +226,7 @@ func (ppu *Ppu) read(address uint16) byte {
 	return 0
 }
 
-func (ppu *Ppu) write(address uint16, val byte) {
+func (ppu *Ppu) Write(address uint16, val byte) {
 	debug("W %X %X \n", address, val)
 
 	switch address {
@@ -239,7 +239,7 @@ func (ppu *Ppu) write(address uint16, val byte) {
 		ppu.oamAddress = uint16(val)
 	case 0x2004:
 		debug("W %X %X \n", address, val)
-		ppu.oamRam.write(uint16(ppu.oamAddress), val)
+		ppu.oamRam.Write(uint16(ppu.oamAddress), val)
 		ppu.oamAddress++
 	case 0x2005:
 		debug("W %X %X \n", address, val)
@@ -279,7 +279,7 @@ func (ppu *Ppu) write(address uint16, val byte) {
 		}
 	case 0x2007:
 		debug(" VRAM %X val %X  ", ppu.address, val)
-		ppu.vram.write(ppu.address, val)
+		ppu.vram.Write(ppu.address, val)
 		ppu.address += uint16(ppu.incrementBy)
 	case 0x4014:
 		debug("\n OAM DMC \n")
@@ -287,7 +287,7 @@ func (ppu *Ppu) write(address uint16, val byte) {
 		addr := uint8(ppu.oamAddress)
 
 		for i := 0; i <= 255; i++ {
-			ppu.oamRam.write(uint16(addr), ppu.cpu.ram.read(base+uint16(i)))
+			ppu.oamRam.Write(uint16(addr), ppu.cpu.ram.Read(base+uint16(i)))
 			addr++
 		}
 
@@ -375,7 +375,7 @@ func (ppu *Ppu) controlRegister1(val uint8) {
 		ppu.spriteSize = 16
 	}
 
-	ppu.nmiOnVBlank = (val>>7 == 1)
+	ppu.NmiOnVBlank = (val>>7 == 1)
 }
 
 // 7 6 5 4 3 2 1 0
@@ -416,8 +416,8 @@ func (ppu *Ppu) PatternTableAddress(x, y int, baseAddress uint16, tileNumber uin
 
 func (ppu *Ppu) patternColorIndex(x, y int, baseAddress uint16, tileNumber uint8) uint8 {
 	patternAddress := ppu.PatternTableAddress(x, y, baseAddress, tileNumber)
-	pattern1 := ppu.vram.read(patternAddress)
-	pattern2 := ppu.vram.read(patternAddress + 8)
+	pattern1 := ppu.vram.Read(patternAddress)
+	pattern2 := ppu.vram.Read(patternAddress + 8)
 
 	bitOffset := uint8((x % 8))
 	pattern1 = (pattern1 << bitOffset) >> 7
@@ -453,9 +453,9 @@ func (ppu *Ppu) spriteColorIndex(x, y int, backgroundColorIndex uint8) uint8 {
 		!ppu.displaySprite ||
 		(sprite.behindBackground && backgroundColorIndex%4 != 0) ||
 		(!ppu.showclipSprite && x <= 7) {
-		index = ppu.vram.read(0x3F00 + uint16(backgroundColorIndex))
+		index = ppu.vram.Read(0x3F00 + uint16(backgroundColorIndex))
 	} else {
-		index = ppu.vram.read(0x3F10 + uint16(sprite.paletteIndex))
+		index = ppu.vram.Read(0x3F10 + uint16(sprite.paletteIndex))
 	}
 
 	if backgroundColorIndex%4 != 0 &&
@@ -484,11 +484,11 @@ func (ppu *Ppu) renderPixel() {
 }
 
 func (ppu *Ppu) oamGetY(index uint8) byte {
-	return ppu.oamRam.read(uint16(4 * index))
+	return ppu.oamRam.Read(uint16(4 * index))
 }
 
 func (ppu *Ppu) oamGetTileBase(index uint8) uint16 {
-	data := uint8(ppu.oamRam.read(uint16(4*index) + 1))
+	data := uint8(ppu.oamRam.Read(uint16(4*index) + 1))
 	if ppu.spriteSize == 8 {
 		return ppu.spritePatternTableAddress
 	} else if data&1 == 0 {
@@ -498,7 +498,7 @@ func (ppu *Ppu) oamGetTileBase(index uint8) uint16 {
 }
 
 func (ppu *Ppu) oamGetTile(index uint8) uint8 {
-	data := uint8(ppu.oamRam.read(uint16(4*index) + 1))
+	data := uint8(ppu.oamRam.Read(uint16(4*index) + 1))
 	if ppu.spriteSize == 8 {
 		return data
 	}
@@ -506,11 +506,11 @@ func (ppu *Ppu) oamGetTile(index uint8) uint8 {
 }
 
 func (ppu *Ppu) oamGetAttribute(index uint8) byte {
-	return ppu.oamRam.read(uint16(4*index) + 2)
+	return ppu.oamRam.Read(uint16(4*index) + 2)
 }
 
 func (ppu *Ppu) oamGetX(index uint8) byte {
-	return ppu.oamRam.read(uint16(4*index) + 3)
+	return ppu.oamRam.Read(uint16(4*index) + 3)
 }
 
 func (ppu *Ppu) calculateSprites(screenY uint8) {
@@ -658,7 +658,7 @@ func (ppu *Ppu) tileNumber() uint16 {
 }
 
 func (ppu *Ppu) nameTablePattern() uint8 {
-	return ppu.vram.read(ppu.scrollBase + ppu.tileNumber())
+	return ppu.vram.Read(ppu.scrollBase + ppu.tileNumber())
 }
 
 var attributeTableLookup = [][]uint8{
@@ -672,12 +672,12 @@ func (ppu *Ppu) nameTableAttribute() uint8 {
 	row := tileNumber / TILES_PER_ROW
 	col := tileNumber % TILES_PER_ROW
 
-	attributeByte := ppu.vram.read(ppu.scrollBase + 960 + ((row/4)*8 + col/4))
+	attributeByte := ppu.vram.Read(ppu.scrollBase + 960 + ((row/4)*8 + col/4))
 
 	return (attributeByte << attributeTableLookup[row%4][col%4]) >> 6
 }
 
-func (ppu *Ppu) step() {
+func (ppu *Ppu) Step() {
 	ppu.currentScanlineCycle++
 
 	if ppu.currentScanlineCycle == 341 {

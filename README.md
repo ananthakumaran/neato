@@ -2,7 +2,7 @@
 
 NES emulator
 
-![Current Status](http://dl.dropbox.com/u/24494398/neato-development/status.png)
+![Current Status](https://github.com/ananthakumaran/neato/raw/master/status.png)
 
 ## Playable Games
 
